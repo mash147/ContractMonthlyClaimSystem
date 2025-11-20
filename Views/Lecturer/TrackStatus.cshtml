@@ -1,0 +1,459 @@
+@model List<Claim>
+@{
+    ViewData["Title"] = "Track Claim Status";
+}
+
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-4 border-bottom">
+    <h1 class="h2">Track Claim Status</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="@Url.Action("Dashboard")" class="btn btn-sm btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i>Back to Dashboard
+        </a>
+    </div>
+</div>
+
+<!-- Status Summary Cards -->
+<div class="row mb-4">
+    <div class="col-md-4 mb-3">
+        <div class="card dashboard-card border-start border-warning border-4">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h6 class="card-title text-warning">Pending Review</h6>
+                        <h3 class="mb-0">@(ViewBag.PendingClaims?.Count ?? 0)</h3>
+                        <small class="text-muted">Awaiting coordinator review</small>
+                    </div>
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-clock fa-2x text-warning"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4 mb-3">
+        <div class="card dashboard-card border-start border-success border-4">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h6 class="card-title text-success">Approved</h6>
+                        <h3 class="mb-0">@(ViewBag.ApprovedClaims?.Count ?? 0)</h3>
+                        <small class="text-muted">Successfully approved</small>
+                    </div>
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-check-circle fa-2x text-success"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4 mb-3">
+        <div class="card dashboard-card border-start border-danger border-4">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h6 class="card-title text-danger">Rejected</h6>
+                        <h3 class="mb-0">@(ViewBag.RejectedClaims?.Count ?? 0)</h3>
+                        <small class="text-muted">Requires resubmission</small>
+                    </div>
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-times-circle fa-2x text-danger"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- All Claims Table -->
+<div class="row">
+    <div class="col-12">
+        <div class="card dashboard-card">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0"><i class="fas fa-tasks me-2"></i>All Claims Status</h5>
+                <div class="btn-group">
+                    <button type="button" class="btn btn-sm btn-outline-primary active" data-filter="all">All</button>
+                    <button type="button" class="btn btn-sm btn-outline-warning" data-filter="pending">Pending</button>
+                    <button type="button" class="btn btn-sm btn-outline-success" data-filter="approved">Approved</button>
+                    <button type="button" class="btn btn-sm btn-outline-danger" data-filter="rejected">Rejected</button>
+                </div>
+            </div>
+            <div class="card-body">
+                @if (Model.Any())
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="claimsTable">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Claim ID</th>
+                                    <th>Submission Date</th>
+                                    <th>Hours Worked</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                    <th>Last Updated</th>
+                                    <th>Documents</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var claim in Model)
+                                {
+                                    <tr class="claim-row" data-status="@claim.Status.ToLower()">
+                                        <td>
+                                            <strong>#@claim.ClaimID</strong>
+                                        </td>
+                                        <td>@claim.SubmissionDate.ToString("dd MMM yyyy")</td>
+                                        <td>@claim.HoursWorked</td>
+                                        <td>@claim.Amount.ToString("C")</td>
+                                        <td>
+                                            <span class="status-badge badge @GetStatusBadgeClass(claim.Status) @GetStatusTextClass(claim.Status)">
+                                                @claim.Status
+                                                @if (claim.Status == "Pending")
+                                                {
+                                                    <i class="fas fa-clock ms-1"></i>
+                                                }
+                                                else if (claim.Status == "Approved")
+                                                {
+                                                    <i class="fas fa-check ms-1"></i>
+                                                }
+                                                else if (claim.Status == "Rejected")
+                                                {
+                                                    <i class="fas fa-times ms-1"></i>
+                                                }
+                                            </span>
+                                        </td>
+                                        <td>
+                                            @{
+                                                var lastUpdate = claim.AuditTrails?
+                                                    .OrderByDescending(a => a.Timestamp)
+                                                    .FirstOrDefault()?.Timestamp ?? claim.SubmissionDate;
+                                            }
+                                            @lastUpdate.ToString("dd MMM yyyy HH:mm")
+                                        </td>
+                                        <td>
+                                            @if (claim.SupportingDocuments?.Any() == true)
+                                            {
+                                                <span class="badge bg-success">
+                                                    <i class="fas fa-file me-1"></i>@claim.SupportingDocuments.Count
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-warning">No documents</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <div class="btn-group" role="group">
+                                                <button class="btn btn-sm btn-outline-primary view-timeline" 
+                                                        data-claim-id="@claim.ClaimID"
+                                                        data-bs-toggle="tooltip" title="View Timeline">
+                                                    <i class="fas fa-history"></i>
+                                                </button>
+                                                <a href="@Url.Action("ClaimDetails", new { id = claim.ClaimID })" 
+                                                   class="btn btn-sm btn-outline-info" data-bs-toggle="tooltip" title="View Details">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                                @if (claim.Status == "Rejected")
+                                                {
+                                                    <a href="@Url.Action("SubmitClaim")" 
+                                                       class="btn btn-sm btn-outline-warning" data-bs-toggle="tooltip" title="Resubmit">
+                                                        <i class="fas fa-redo"></i>
+                                                    </a>
+                                                }
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="text-center py-5">
+                        <i class="fas fa-file-invoice fa-4x text-muted mb-3"></i>
+                        <h4 class="text-muted">No Claims Found</h4>
+                        <p class="text-muted">You haven't submitted any claims yet.</p>
+                        <a href="@Url.Action("SubmitClaim")" class="btn btn-primary">
+                            <i class="fas fa-plus-circle me-1"></i>Submit Your First Claim
+                        </a>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Timeline Modal -->
+<div class="modal fade" id="timelineModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Claim Timeline - #<span id="timelineClaimId"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="timelineContent">
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2">Loading timeline...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Initialize tooltips
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+
+            // Filter functionality
+            $('[data-filter]').click(function() {
+                var filter = $(this).data('filter');
+
+                // Update active button
+                $('[data-filter]').removeClass('active');
+                $(this).addClass('active');
+
+                // Show/hide rows
+                if (filter === 'all') {
+                    $('.claim-row').show();
+                } else {
+                    $('.claim-row').hide();
+                    $('.claim-row[data-status="' + filter + '"]').show();
+                }
+            });
+
+            // Timeline modal
+            $('.view-timeline').click(function() {
+                var claimId = $(this).data('claim-id');
+                $('#timelineClaimId').text(claimId);
+                loadTimeline(claimId);
+                $('#timelineModal').modal('show');
+            });
+
+            function loadTimeline(claimId) {
+                $('#timelineContent').html(`
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2">Loading timeline...</p>
+                    </div>
+                `);
+
+                $.get('@Url.Action("GetClaimTimeline", "Lecturer")', { claimId: claimId })
+                    .done(function(response) {
+                        if (response.success) {
+                            displayTimeline(response.timeline);
+                        } else {
+                            $('#timelineContent').html(`
+                                <div class="alert alert-danger">
+                                    <i class="fas fa-exclamation-circle me-2"></i>${response.message}
+                                </div>
+                            `);
+                        }
+                    })
+                    .fail(function() {
+                        $('#timelineContent').html(`
+                            <div class="alert alert-danger">
+                                <i class="fas fa-exclamation-circle me-2"></i>Error loading timeline.
+                            </div>
+                        `);
+                    });
+            }
+
+            function displayTimeline(timeline) {
+                var html = '<div class="timeline">';
+
+                timeline.forEach(function(item, index) {
+                    var isLast = index === timeline.length - 1;
+
+                    html += `
+                        <div class="timeline-item ${isLast ? 'current' : ''}">
+                            <div class="timeline-marker">
+                                <i class="${item.icon}"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <div class="timeline-header">
+                                    <strong>${item.action}</strong>
+                                    <span class="timeline-date">${item.date}</span>
+                                </div>
+                                <div class="timeline-body">
+                                    <small class="text-muted">By: ${item.user}</small>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                html += '</div>';
+                $('#timelineContent').html(html);
+            }
+        });
+    </script>
+}
+
+<style>
+    .timeline {
+        position: relative;
+        padding-left: 30px;
+    }
+
+    .timeline-item {
+        position: relative;
+        padding-bottom: 20px;
+    }
+
+        .timeline-item:not(:last-child):before {
+            content: '';
+            position: absolute;
+            left: -20px;
+            top: 0;
+            bottom: -20px;
+            width: 2px;
+            background-color: #e9ecef;
+        }
+
+    .timeline-marker {
+        position: absolute;
+        left: -30px;
+        top: 0;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background-color: #0d6efd;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 0.7rem;
+    }
+
+    .timeline-item.current .timeline-marker {
+        background-color: #198754;
+        animation: pulse 2s infinite;
+    }
+
+    .timeline-content {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 8px;
+        border-left: 3px solid #0d6efd;
+    }
+
+    .timeline-item.current .timeline-content {
+        border-left-color: #198754;
+        background: #f0fff4;
+    }
+
+    .timeline-header {
+        display: flex;
+        justify-content: between;
+        align-items: center;
+        margin-bottom: 5px;
+    }
+
+    .timeline-date {
+        color: #6c757d;
+        font-size: 0.875rem;
+    }
+
+    .status-badge {
+        font-size: 0.75rem;
+        padding: 0.35rem 0.65rem;
+    }
+
+    .text-warning {
+        color: #ffc107 !important;
+    }
+
+    .text-success {
+        color: #198754 !important;
+    }
+
+    .text-danger {
+        color: #dc3545 !important;
+    }
+
+    @@keyframes pulse {
+        0% {
+            transform: scale(1);
+        }
+
+        50% {
+            transform: scale(1.1);
+        }
+
+        100% {
+            transform: scale(1);
+        }
+    }
+
+    @@media (max-width: 768px) {
+        .timeline {
+            padding-left: 20px;
+        }
+
+        .timeline-marker {
+            left: -25px;
+            width: 16px;
+            height: 16px;
+            font-size: 0.6rem;
+        }
+
+        .timeline-content {
+            padding: 10px;
+        }
+    }
+</style>
+
+@* Helper methods for C# code *@
+@functions {
+    public string GetStatusBadgeClass(string status)
+    {
+        return status switch
+        {
+            "Pending" or "Under Review" => "bg-warning",
+            "Approved" => "bg-success",
+            "Rejected" => "bg-danger",
+            _ => "bg-secondary"
+        };
+    }
+
+    public string GetStatusTextClass(string status)
+    {
+        return status switch
+        {
+            "Pending" or "Under Review" => "text-warning",
+            "Approved" => "text-success",
+            "Rejected" => "text-danger",
+            _ => "text-secondary"
+        };
+    }
+
+    public string GetFileIcon(string fileName)
+    {
+        var extension = System.IO.Path.GetExtension(fileName).ToLower();
+        return extension switch
+        {
+            ".pdf" => "pdf",
+            ".docx" => "word",
+            ".xlsx" => "excel",
+            ".jpg" or ".jpeg" or ".png" => "image",
+            _ => "alt"
+        };
+    }
+}

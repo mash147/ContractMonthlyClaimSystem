@@ -1,0 +1,295 @@
+@model List<Claim>
+@{
+    ViewData["Title"] = "Manager Dashboard";
+    Layout = "_ManagerLayout";
+}
+
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-4 border-bottom">
+    <h1 class="h2">Executive Dashboard</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <div class="btn-group me-2">
+            <a href="@Url.Action("ExportReports")" class="btn btn-sm btn-outline-primary">
+                <i class="fas fa-download me-1"></i>Export Report
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Welcome Section -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card manager-card bg-light">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-8">
+                        <h3 class="card-title">Welcome, @ViewBag.UserName!</h3>
+                        <p class="card-text text-muted">
+                            As an Academic Manager, you have oversight of all claim activities, financial approvals, and system analytics.
+                        </p>
+                        <div class="mt-3">
+                            <span class="badge bg-warning me-2"><i class="fas fa-check-double me-1"></i>@(Model?.Count ?? 0) Claims Awaiting Final Approval</span>
+                            <span class="badge bg-success me-2"><i class="fas fa-dollar-sign me-1"></i>@(ViewBag.TotalAmountThisMonth?.ToString("C") ?? "$0") This Month</span>
+                            <span class="badge bg-info"><i class="fas fa-calendar me-1"></i>@DateTime.Now.ToString("dd MMMM yyyy")</span>
+                        </div>
+                    </div>
+                    <div class="col-md-4 text-center">
+                        <i class="fas fa-chart-line fa-5x text-warning opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Executive Summary Cards -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card manager-card border-start border-warning border-4">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs fw-bold text-warning text-uppercase mb-1">Final Approval Needed</div>
+                        <div class="h5 mb-0 fw-bold text-gray-800">@(Model?.Count ?? 0)</div>
+                        <div class="mt-2 text-xs text-muted">Coordinator approved claims</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-check-double fa-2x text-warning"></i>
+                    </div>
+                </div>
+                <div class="mt-2">
+                    <a href="@Url.Action("ApproveClaims")" class="btn btn-sm btn-warning">Review Now</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card manager-card border-start border-success border-4">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs fw-bold text-success text-uppercase mb-1">Monthly Amount</div>
+                        <div class="h5 mb-0 fw-bold text-gray-800">@(ViewBag.TotalAmountThisMonth?.ToString("C") ?? "$0")</div>
+                        <div class="mt-2 text-xs text-muted">Approved claims this month</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-dollar-sign fa-2x text-success"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card manager-card border-start border-info border-4">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs fw-bold text-info text-uppercase mb-1">Total Claims</div>
+                        <div class="h5 mb-0 fw-bold text-gray-800">@(ViewBag.TotalClaimsCount ?? 0)</div>
+                        <div class="mt-2 text-xs text-muted">All-time claims submitted</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-file-invoice fa-2x text-info"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card manager-card border-start border-primary border-4">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs fw-bold text-primary text-uppercase mb-1">Active Lecturers</div>
+                        <div class="h5 mb-0 fw-bold text-gray-800">@(ViewBag.TotalLecturers ?? 0)</div>
+                        <div class="mt-2 text-xs text-muted">Registered lecturers</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-users fa-2x text-primary"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Performance Metrics -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card manager-card">
+            <div class="card-header bg-white">
+                <h6 class="card-title mb-0"><i class="fas fa-chart-bar me-2"></i>Approval Rate</h6>
+            </div>
+            <div class="card-body text-center">
+                <div class="display-4 fw-bold text-success">@(ViewBag.Statistics?.ApprovalRate.ToString("F1") ?? "0")%</div>
+                <p class="text-muted mb-0">Overall claim approval rate</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card manager-card">
+            <div class="card-header bg-white">
+                <h6 class="card-title mb-0"><i class="fas fa-clock me-2"></i>Avg. Processing</h6>
+            </div>
+            <div class="card-body text-center">
+                <div class="display-4 fw-bold text-info">@(ViewBag.Statistics?.AverageProcessingTime.ToString("F1") ?? "0") days</div>
+                <p class="text-muted mb-0">Average processing time</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card manager-card">
+            <div class="card-header bg-white">
+                <h6 class="card-title mb-0"><i class="fas fa-building me-2"></i>Top Department</h6>
+            </div>
+            <div class="card-body text-center">
+                <div class="h4 fw-bold text-primary">@(ViewBag.Statistics?.TopDepartment ?? "N/A")</div>
+                <p class="text-muted mb-0">Highest claim volume</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Claims Requiring Final Approval -->
+<div class="row">
+    <div class="col-12">
+        <div class="card manager-card">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0"><i class="fas fa-check-double me-2 text-warning"></i>Claims Requiring Final Approval</h5>
+                <a href="@Url.Action("ApproveClaims")" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            <div class="card-body">
+                @if (Model != null && Model.Any())
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Claim ID</th>
+                                    <th>Lecturer</th>
+                                    <th>Department</th>
+                                    <th>Hours</th>
+                                    <th>Amount</th>
+                                    <th>Submitted</th>
+                                    <th>Coordinator</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var claim in Model.Take(5))
+                                {
+                                    <tr>
+                                        <td>
+                                            <strong>#@claim.ClaimID</strong>
+                                        </td>
+                                        <td>@claim.Lecturer?.Name</td>
+                                        <td>@claim.Lecturer?.Department</td>
+                                        <td>@claim.HoursWorked</td>
+                                        <td>@claim.Amount.ToString("C")</td>
+                                        <td>@claim.SubmissionDate.ToString("dd MMM yyyy")</td>
+                                        <td>
+                                            @{
+                                                var coordinatorApproval = claim.AuditTrails?
+                                                    .FirstOrDefault(a => a.Action.Contains("Coordinator Approved"));
+                                                if (coordinatorApproval != null)
+                                                {
+                                                    <small>@coordinatorApproval.User?.FullName</small>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-secondary">N/A</span>
+                                                }
+                                            }
+                                        </td>
+                                        <td>
+                                            <div class="btn-group" role="group">
+                                                <a href="@Url.Action("ClaimAnalysis", new { id = claim.ClaimID })" 
+                                                   class="btn btn-sm btn-outline-primary">
+                                                    <i class="fas fa-chart-line"></i> Analyze
+                                                </a>
+                                                <form method="post" asp-action="FinalApproveClaim" class="d-inline">
+                                                    <input type="hidden" name="claimId" value="@claim.ClaimID" />
+                                                    <button type="submit" class="btn btn-sm btn-success" 
+                                                            onclick="return confirm('Grant final approval for this claim?')">
+                                                        <i class="fas fa-check-double"></i> Approve
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                    @if (Model.Count > 5)
+                    {
+                        <div class="text-center mt-3">
+                            <a href="@Url.Action("ApproveClaims")" class="btn btn-primary">
+                                View All @Model.Count Claims for Approval
+                            </a>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="text-center py-4">
+                        <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                        <h5 class="text-success">No Claims Pending Final Approval!</h5>
+                        <p class="text-muted">All coordinator-approved claims have been processed.</p>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card manager-card">
+            <div class="card-header bg-white">
+                <h5 class="card-title mb-0"><i class="fas fa-bolt me-2"></i>Executive Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <a href="@Url.Action("ApproveClaims")" class="btn btn-warning w-100 h-100 py-3">
+                            <i class="fas fa-check-double fa-2x mb-2"></i><br>
+                            Approve Claims
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="@Url.Action("AuditTrail")" class="btn btn-info w-100 h-100 py-3">
+                            <i class="fas fa-history fa-2x mb-2"></i><br>
+                            Audit Trail
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="@Url.Action("Statistics")" class="btn btn-success w-100 h-100 py-3">
+                            <i class="fas fa-chart-pie fa-2x mb-2"></i><br>
+                            Statistics
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="@Url.Action("ExportReports")" class="btn btn-primary w-100 h-100 py-3">
+                            <i class="fas fa-file-export fa-2x mb-2"></i><br>
+                            Export Reports
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Initialize any dashboard charts or analytics
+        $(document).ready(function() {
+            console.log('Manager dashboard loaded');
+            // Additional dashboard functionality can be added here
+        });
+    </script>
+}

@@ -1,0 +1,206 @@
+@model List<AuditTrail>
+@{
+    ViewData["Title"] = "Audit Trail";
+    Layout = "_ManagerLayout";
+}
+
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-4 border-bottom">
+    <h1 class="h2">Audit Trail</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <div class="btn-group me-2">
+            <a href="@Url.Action("ExportReports")" class="btn btn-sm btn-outline-primary">
+                <i class="fas fa-download me-1"></i>Export Audit
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Section -->
+<div class="card manager-card mb-4">
+    <div class="card-body">
+        <form method="get" asp-action="AuditTrail" class="row g-3">
+            <div class="col-md-3">
+                <label for="startDate" class="form-label">Start Date</label>
+                <input type="date" class="form-control" id="startDate" name="startDate" 
+                       value="@ViewBag.StartDate.ToString("yyyy-MM-dd")">
+            </div>
+            <div class="col-md-3">
+                <label for="endDate" class="form-label">End Date</label>
+                <input type="date" class="form-control" id="endDate" name="endDate" 
+                       value="@ViewBag.EndDate.ToString("yyyy-MM-dd")">
+            </div>
+            <div class="col-md-3">
+                <label for="actionFilter" class="form-label">Action Type</label>
+                <select class="form-select" id="actionFilter" name="actionFilter">
+                    @foreach (var actionType in ViewBag.ActionTypes)
+                    {
+                        <option value="@actionType" selected="@(actionType == ViewBag.ActionFilter)">@actionType</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-filter me-1"></i>Apply Filters
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Audit Summary Cards -->
+<div class="row mb-4">
+    <div class="col-xl-2 col-md-4 mb-3">
+        <div class="card manager-card border-start border-primary border-4">
+            <div class="card-body text-center">
+                <div class="h4 mb-0 fw-bold text-primary">@Model.Count</div>
+                <small class="text-muted">Total Actions</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-2 col-md-4 mb-3">
+        <div class="card manager-card border-start border-success border-4">
+            <div class="card-body text-center">
+                <div class="h4 mb-0 fw-bold text-success">@Model.Count(a => a.Action.Contains("Approved"))</div>
+                <small class="text-muted">Approvals</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-2 col-md-4 mb-3">
+        <div class="card manager-card border-start border-danger border-4">
+            <div class="card-body text-center">
+                <div class="h4 mb-0 fw-bold text-danger">@Model.Count(a => a.Action.Contains("Rejected"))</div>
+                <small class="text-muted">Rejections</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-2 col-md-4 mb-3">
+        <div class="card manager-card border-start border-info border-4">
+            <div class="card-body text-center">
+                <div class="h4 mb-0 fw-bold text-info">@Model.Count(a => a.Action.Contains("Submitted"))</div>
+                <small class="text-muted">Submissions</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-2 col-md-4 mb-3">
+        <div class="card manager-card border-start border-warning border-4">
+            <div class="card-body text-center">
+                <div class="h4 mb-0 fw-bold text-warning">@Model.Count(a => a.Action.Contains("Uploaded"))</div>
+                <small class="text-muted">Document Uploads</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Audit Trail Table -->
+<div class="card manager-card">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">
+            <i class="fas fa-history me-2 text-info"></i>System Audit Trail
+        </h5>
+        <small class="text-muted">
+            Showing @Model.Count actions from @ViewBag.StartDate.ToString("dd MMM yyyy") to @ViewBag.EndDate.ToString("dd MMM yyyy")
+        </small>
+    </div>
+    <div class="card-body">
+        @if (Model != null && Model.Any())
+        {
+            <div class="table-responsive">
+                <table class="table table-hover" id="auditTable">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Timestamp</th>
+                            <th>User</th>
+                            <th>Action</th>
+                            <th>Claim ID</th>
+                            <th>Lecturer</th>
+                            <th>Department</th>
+                            <th>Details</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var audit in Model)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="text-nowrap">
+                                        <div class="fw-bold">@audit.Timestamp.ToString("dd MMM yyyy")</div>
+                                        <small class="text-muted">@audit.Timestamp.ToString("HH:mm:ss")</small>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="avatar-sm bg-primary rounded-circle me-2 d-flex align-items-center justify-content-center">
+                                            <i class="fas fa-user text-white"></i>
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold">@audit.User?.FullName</div>
+                                            <small class="text-muted">@audit.User?.Role</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    @if (audit.Action.Contains("Approved"))
+                                    {
+                                        <span class="badge bg-success"><i class="fas fa-check me-1"></i>@audit.Action</span>
+                                    }
+                                    else if (audit.Action.Contains("Rejected"))
+                                    {
+                                        <span class="badge bg-danger"><i class="fas fa-times me-1"></i>@audit.Action</span>
+                                    }
+                                    else if (audit.Action.Contains("Submitted"))
+                                    {
+                                        <span class="badge bg-primary"><i class="fas fa-paper-plane me-1"></i>@audit.Action</span>
+                                    }
+                                    else if (audit.Action.Contains("Uploaded"))
+                                    {
+                                        <span class="badge bg-info"><i class="fas fa-upload me-1"></i>@audit.Action</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">@audit.Action</span>
+                                    }
+                                </td>
+                                <td>
+                                    <a href="@Url.Action("ClaimAnalysis", new { id = audit.ClaimID })" 
+                                       class="btn btn-sm btn-outline-primary">
+                                        #@audit.ClaimID
+                                    </a>
+                                </td>
+                                <td>@audit.Claim?.Lecturer?.Name</td>
+                                <td>@audit.Claim?.Lecturer?.Department</td>
+                                <td>
+                                    <small class="text-muted">@audit.Action</small>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="text-center py-5">
+                <i class="fas fa-search fa-4x text-muted mb-3"></i>
+                <h4 class="text-muted">No Audit Records Found</h4>
+                <p class="text-muted">No audit trail records match the current filter criteria.</p>
+                <a href="@Url.Action("AuditTrail")" class="btn btn-primary">
+                    <i class="fas fa-refresh me-1"></i>Clear Filters
+                </a>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            $('#auditTable').DataTable({
+                pageLength: 50,
+                order: [[0, 'desc']],
+                language: {
+                    search: "Search audit trail:"
+                }
+            });
+        });
+    </script>
+}

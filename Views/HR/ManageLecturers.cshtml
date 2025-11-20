@@ -1,0 +1,136 @@
+@model IEnumerable<Lecturer>
+@{
+    ViewData["Title"] = "Manage Lecturers";
+    Layout = "_HRLayout";
+}
+
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-4 border-bottom">
+    <h1 class="h2">Manage Lecturers</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <div class="btn-group me-2">
+            <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#importModal">
+                <i class="fas fa-upload me-1"></i>Import
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Search and Filter -->
+<div class="card hr-card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-6">
+                <input type="text" name="search" class="form-control" placeholder="Search by name, email, or employee ID..." value="@ViewBag.SearchTerm">
+            </div>
+            <div class="col-md-4">
+                <select name="department" class="form-select">
+                    @foreach (var dept in ViewBag.Departments)
+                    {
+                        <option value="@dept" selected="@(dept == ViewBag.SelectedDepartment)">@dept</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-search me-1"></i>Search
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Lecturers Table -->
+<div class="card hr-card">
+    <div class="card-header bg-white">
+        <h5 class="card-title mb-0">
+            <i class="fas fa-users me-2"></i>Lecturers (@Model.Count())
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Employee ID</th>
+                        <th>Email</th>
+                        <th>Department</th>
+                        <th>Hourly Rate</th>
+                        <th>Status</th>
+                        <th>Total Claims</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var lecturer in Model)
+                    {
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar-sm bg-primary rounded-circle text-white d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px;">
+                                        @lecturer.Name.Substring(0, 1).ToUpper()
+                                    </div>
+                                    <strong>@lecturer.Name</strong>
+                                </div>
+                            </td>
+                            <td>@lecturer.User?.EmployeeId</td>
+                            <td>@lecturer.User?.Email</td>
+                            <td>
+                                <span class="badge bg-secondary">@lecturer.Department</span>
+                            </td>
+                            <td>@lecturer.HourlyRate.ToString("C")</td>
+                            <td>
+                                @if (lecturer.User?.IsActive == true)
+                                {
+                                    <span class="badge bg-success">Active</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-danger">Inactive</span>
+                                }
+                            </td>
+                            <td>
+                                <span class="badge bg-info">@lecturer.Claims?.Count</span>
+                            </td>
+                            <td>
+                                <div class="btn-group">
+                                    <a href="@Url.Action("LecturerDetails", new { id = lecturer.LecturerID })" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="@Url.Action("EditLecturer", new { id = lecturer.LecturerID })" class="btn btn-sm btn-outline-secondary">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Import Modal -->
+<div class="modal fade" id="importModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Import Lecturers</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Upload CSV File</label>
+                    <input type="file" class="form-control" accept=".csv">
+                    <div class="form-text">
+                        Download the <a href="#">template file</a> for correct format.
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary">Import</button>
+            </div>
+        </div>
+    </div>
+</div>

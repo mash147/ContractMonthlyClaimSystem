@@ -1,0 +1,221 @@
+@{
+    ViewData["Title"] = "Lecturer Dashboard";
+}
+
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-4 border-bottom">
+    <h1 class="h2">Dashboard</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <div class="btn-group me-2">
+            <a href="@Url.Action("SubmitClaim")" class="btn btn-sm btn-success">
+                <i class="fas fa-plus-circle me-1"></i>New Claim
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Welcome Section -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card dashboard-card bg-light">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-8">
+                        <h3 class="card-title">Welcome, @ViewBag.LecturerName!</h3>
+                        <p class="card-text text-muted">Manage your monthly claims efficiently with our system. Submit new claims, track their status, and view your claim history.</p>
+                        <div class="mt-3">
+                            <span class="badge bg-info me-2"><i class="fas fa-money-bill-wave me-1"></i>Hourly Rate: @ViewBag.HourlyRate.ToString("C")</span>
+                            <span class="badge bg-secondary"><i class="fas fa-calendar me-1"></i>@DateTime.Now.ToString("dd MMMM yyyy")</span>
+                        </div>
+                    </div>
+                    <div class="col-md-4 text-center">
+                        <i class="fas fa-chart-line fa-5x text-primary opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card dashboard-card border-start border-primary border-4">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs fw-bold text-primary text-uppercase mb-1">Pending Claims</div>
+                        <div class="h5 mb-0 fw-bold text-gray-800">@(ViewBag.PendingClaimsCount ?? 0)</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-clock fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card dashboard-card border-start border-success border-4">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs fw-bold text-success text-uppercase mb-1">Approved Claims</div>
+                        <div class="h5 mb-0 fw-bold text-gray-800">@(ViewBag.ApprovedClaimsCount ?? 0)</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card dashboard-card border-start border-danger border-4">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs fw-bold text-danger text-uppercase mb-1">Rejected Claims</div>
+                        <div class="h5 mb-0 fw-bold text-gray-800">@(ViewBag.RejectedClaimsCount ?? 0)</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-times-circle fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card dashboard-card border-start border-info border-4">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs fw-bold text-info text-uppercase mb-1">Total Claims</div>
+                        <div class="h5 mb-0 fw-bold text-gray-800">@(ViewBag.TotalClaimsCount ?? 0)</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-file-invoice fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card dashboard-card">
+            <div class="card-header bg-white">
+                <h5 class="card-title mb-0"><i class="fas fa-bolt me-2"></i>Quick Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <a href="@Url.Action("SubmitClaim")" class="btn btn-primary w-100 h-100 py-3">
+                            <i class="fas fa-plus-circle fa-2x mb-2"></i><br>
+                            Submit New Claim
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="@Url.Action("UploadDocuments")" class="btn btn-success w-100 h-100 py-3">
+                            <i class="fas fa-upload fa-2x mb-2"></i><br>
+                            Upload Documents
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="@Url.Action("TrackStatus")" class="btn btn-info w-100 h-100 py-3">
+                            <i class="fas fa-tasks fa-2x mb-2"></i><br>
+                            Track Status
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="@Url.Action("History")" class="btn btn-warning w-100 h-100 py-3">
+                            <i class="fas fa-history fa-2x mb-2"></i><br>
+                            View History
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Claims -->
+<div class="row">
+    <div class="col-12">
+        <div class="card dashboard-card">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0"><i class="fas fa-history me-2"></i>Recent Claims</h5>
+                <a href="@Url.Action("History")" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            <div class="card-body">
+                @if (ViewBag.RecentClaims != null && ViewBag.RecentClaims.Count > 0)
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Claim ID</th>
+                                    <th>Submission Date</th>
+                                    <th>Hours Worked</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var claim in ViewBag.RecentClaims)
+                                {
+                                    <tr>
+                                        <td>#@claim.ClaimID</td>
+                                        <td>@claim.SubmissionDate.ToString("dd MMM yyyy")</td>
+                                        <td>@claim.HoursWorked</td>
+                                        <td>@claim.Amount.ToString("C")</td>
+                                        <td>
+                                            <span class="status-badge badge @GetStatusBadgeClass(claim.Status)">
+                                                @claim.Status
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <a href="@Url.Action("ClaimDetails", new { id = claim.ClaimID })"
+                                               class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-eye"></i> View
+                                            </a>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="text-center py-4">
+                        <i class="fas fa-file-invoice fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No claims submitted yet</h5>
+                        <p class="text-muted">Get started by submitting your first claim</p>
+                        <a href="@Url.Action("SubmitClaim")" class="btn btn-primary">
+                            <i class="fas fa-plus-circle me-1"></i>Submit First Claim
+                        </a>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@functions {
+    public string GetStatusBadgeClass(string status)
+    {
+        return status switch
+        {
+            "Pending" => "bg-warning",
+            "Approved" => "bg-success",
+            "Rejected" => "bg-danger",
+            "Under Review" => "bg-info",
+            _ => "bg-secondary"
+        };
+    }
+}

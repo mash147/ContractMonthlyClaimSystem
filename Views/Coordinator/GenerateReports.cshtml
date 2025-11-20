@@ -1,0 +1,367 @@
+@model CoordinatorReportViewModel
+@{
+    ViewData["Title"] = "Generate Reports";
+}
+
+<!-- Page Header -->
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Generate Reports</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <div class="btn-group me-2">
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="window.print()">
+                <i class="fas fa-print me-1"></i>Print
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Report Configuration -->
+<div class="row mb-4">
+    <div class="col-lg-8">
+        <div class="card coordinator-card">
+            <div class="card-header bg-white">
+                <h5 class="card-title mb-0"><i class="fas fa-cog me-2"></i>Report Configuration</h5>
+            </div>
+            <div class="card-body">
+                <form method="post" asp-action="GenerateReport">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Report Type</label>
+                            <select class="form-select" name="ReportType">
+                                <option value="Monthly" selected="@(Model.ReportType == "Monthly")">Monthly Report</option>
+                                <option value="Weekly" selected="@(Model.ReportType == "Weekly")">Weekly Report</option>
+                                <option value="Quarterly" selected="@(Model.ReportType == "Quarterly")">Quarterly Report</option>
+                                <option value="Custom" selected="@(Model.ReportType == "Custom")">Custom Report</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Department</label>
+                            <select class="form-select" name="Department">
+                                @foreach (var dept in ViewBag.Departments)
+                                {
+                                    <option value="@dept" selected="@(dept == Model.Department)">@dept</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Start Date</label>
+                            <input type="date" class="form-control" name="StartDate" 
+                                   value="@Model.StartDate.ToString("yyyy-MM-dd")">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">End Date</label>
+                            <input type="date" class="form-control" name="EndDate" 
+                                   value="@Model.EndDate.ToString("yyyy-MM-dd")">
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-chart-bar me-1"></i>Generate Report
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <!-- Quick Actions -->
+        <div class="card coordinator-card mb-4">
+            <div class="card-header bg-white">
+                <h6 class="card-title mb-0"><i class="fas fa-bolt me-2"></i>Quick Reports</h6>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="@Url.Action("GenerateReports", new { reportType = "Monthly", startDate = DateTime.Now.AddDays(-30).ToString("yyyy-MM-dd"), endDate = DateTime.Now.ToString("yyyy-MM-dd") })" 
+                       class="btn btn-outline-primary text-start">
+                        <i class="fas fa-calendar-alt me-2"></i>Last 30 Days
+                    </a>
+                    <a href="@Url.Action("GenerateReports", new { reportType = "Monthly", startDate = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1).ToString("yyyy-MM-dd"), endDate = DateTime.Now.ToString("yyyy-MM-dd") })" 
+                       class="btn btn-outline-primary text-start">
+                        <i class="fas fa-calendar me-2"></i>This Month
+                    </a>
+                    <a href="@Url.Action("GenerateReports", new { reportType = "Quarterly", startDate = new DateTime(DateTime.Now.Year, 1, 1).ToString("yyyy-MM-dd"), endDate = DateTime.Now.ToString("yyyy-MM-dd") })" 
+                       class="btn btn-outline-primary text-start">
+                        <i class="fas fa-chart-line me-2"></i>Year to Date
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Export Options -->
+        <div class="card coordinator-card">
+            <div class="card-header bg-white">
+                <h6 class="card-title mb-0"><i class="fas fa-download me-2"></i>Export Options</h6>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="@Url.Action("ExportReport", new { 
+                        reportType = Model.ReportType, 
+                        startDate = Model.StartDate, 
+                        endDate = Model.EndDate, 
+                        department = Model.Department, 
+                        format = "PDF" 
+                    })" class="btn btn-danger">
+                        <i class="fas fa-file-pdf me-2"></i>Export as PDF
+                    </a>
+                    <a href="@Url.Action("ExportReport", new { 
+                        reportType = Model.ReportType, 
+                        startDate = Model.StartDate, 
+                        endDate = Model.EndDate, 
+                        department = Model.Department, 
+                        format = "Excel" 
+                    })" class="btn btn-success">
+                        <i class="fas fa-file-excel me-2"></i>Export as Excel
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Report Summary -->
+@if (Model.Claims != null)
+{
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card coordinator-card">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-bar me-2"></i>Report Summary
+                        <small class="text-muted ms-2">
+                            @Model.StartDate.ToString("dd MMM yyyy") - @Model.EndDate.ToString("dd MMM yyyy")
+                            @(Model.Department != "All" ? $" | {Model.Department}" : "")
+                        </small>
+                    </h5>
+                    <div class="badge bg-primary">
+                        @Model.ReportType Report
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-2 col-6 mb-3">
+                            <div class="card bg-primary text-white">
+                                <div class="card-body py-3">
+                                    <h4 class="mb-1">@Model.TotalClaims</h4>
+                                    <small>Total Claims</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-2 col-6 mb-3">
+                            <div class="card bg-success text-white">
+                                <div class="card-body py-3">
+                                    <h4 class="mb-1">@Model.ApprovedClaims</h4>
+                                    <small>Approved</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-2 col-6 mb-3">
+                            <div class="card bg-warning text-white">
+                                <div class="card-body py-3">
+                                    <h4 class="mb-1">@Model.PendingClaims</h4>
+                                    <small>Pending</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-2 col-6 mb-3">
+                            <div class="card bg-danger text-white">
+                                <div class="card-body py-3">
+                                    <h4 class="mb-1">@Model.RejectedClaims</h4>
+                                    <small>Rejected</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-2 col-6 mb-3">
+                            <div class="card bg-info text-white">
+                                <div class="card-body py-3">
+                                    <h4 class="mb-1">@Model.UnderReviewClaims</h4>
+                                    <small>Under Review</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-2 col-6 mb-3">
+                            <div class="card bg-secondary text-white">
+                                <div class="card-body py-3">
+                                    <h4 class="mb-1">@Model.TotalAmount.ToString("C")</h4>
+                                    <small>Total Amount</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Performance Metrics -->
+                    <div class="row mt-4">
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-clock fa-2x text-info mb-2"></i>
+                                    <h5>@Model.AverageProcessingTime.ToString("F1") days</h5>
+                                    <small class="text-muted">Avg. Processing Time</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-percentage fa-2x text-success mb-2"></i>
+                                    <h5>@Model.ApprovalRate.ToString("F1")%</h5>
+                                    <small class="text-muted">Approval Rate</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-dollar-sign fa-2x text-warning mb-2"></i>
+                                    <h5>@Model.AverageClaimAmount.ToString("C")</h5>
+                                    <small class="text-muted">Avg. Claim Amount</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detailed Claims Data -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card coordinator-card">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-list me-2"></i>Detailed Claims Data
+                        <span class="badge bg-primary ms-2">@Model.Claims.Count claims</span>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    @if (Model.Claims.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Claim ID</th>
+                                        <th>Lecturer</th>
+                                        <th>Department</th>
+                                        <th>Hours</th>
+                                        <th>Amount</th>
+                                        <th>Status</th>
+                                        <th>Submitted</th>
+                                        <th>Documents</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var claim in Model.Claims)
+                                    {
+                                        <tr>
+                                            <td><strong>#@claim.ClaimID</strong></td>
+                                            <td>@claim.Lecturer?.Name</td>
+                                            <td>@claim.Lecturer?.Department</td>
+                                            <td>@claim.HoursWorked</td>
+                                            <td>@claim.Amount.ToString("C")</td>
+                                            <td>
+                                                <span class="badge @GetStatusBadgeClass(claim.Status)">
+                                                    @claim.Status
+                                                </span>
+                                            </td>
+                                            <td>@claim.SubmissionDate.ToString("dd MMM yy")</td>
+                                            <td>
+                                                @if (claim.SupportingDocuments?.Any() == true)
+                                                {
+                                                    <span class="badge bg-success">@claim.SupportingDocuments.Count</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-warning">0</span>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-5">
+                            <i class="fas fa-chart-bar fa-4x text-muted mb-3"></i>
+                            <h4 class="text-muted">No Data Available</h4>
+                            <p class="text-muted">No claims found for the selected criteria.</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="row">
+        <div class="col-12">
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>
+                Configure your report settings above and click "Generate Report" to view data.
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .coordinator-card {
+        border: none;
+        border-radius: 10px;
+        box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+        margin-bottom: 1.5rem;
+    }
+
+    .coordinator-card .card-header {
+        background: #fff;
+        border-bottom: 1px solid #e3e6f0;
+        font-weight: 600;
+        padding: 1rem 1.35rem;
+    }
+
+    .coordinator-card .card-body {
+        padding: 1.35rem;
+    }
+
+    .card {
+        transition: transform 0.2s;
+    }
+    .card:hover {
+        transform: translateY(-2px);
+    }
+    .table th {
+        border-top: none;
+        font-weight: 600;
+        color: #6e707e;
+        background-color: #f8f9fc;
+    }
+
+    .table-hover tbody tr:hover {
+        background-color: #f8f9fc;
+    }
+</style>
+
+@functions {
+    public string GetStatusBadgeClass(string status)
+    {
+        return status switch
+        {
+            "Pending" => "bg-warning",
+            "Under Review" => "bg-info",
+            "Coordinator Approved" => "bg-success",
+            "Approved" => "bg-success",
+            "Rejected" => "bg-danger",
+            "Revision Requested" => "bg-secondary",
+            _ => "bg-secondary"
+        };
+    }
+}

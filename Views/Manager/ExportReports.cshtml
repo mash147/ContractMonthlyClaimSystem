@@ -1,0 +1,335 @@
+@model ContractMonthlyClaimSystem.Models.ViewModels.ManagerReportViewModel
+@{
+    ViewData["Title"] = "Export Reports";
+    Layout = "_ManagerLayout";
+}
+
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-4 border-bottom">
+    <h1 class="h2">Export Reports</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <div class="btn-group me-2">
+            <a href="@Url.Action("DownloadReport", new { 
+                     reportType = ViewBag.ReportType, 
+                     startDate = ViewBag.StartDate, 
+                     endDate = ViewBag.EndDate, 
+                     format = "PDF" })" 
+               class="btn btn-sm btn-danger">
+                <i class="fas fa-file-pdf me-1"></i>Export PDF
+            </a>
+            <a href="@Url.Action("DownloadReport", new { 
+                     reportType = ViewBag.ReportType, 
+                     startDate = ViewBag.StartDate, 
+                     endDate = ViewBag.EndDate, 
+                     format = "Excel" })" 
+               class="btn btn-sm btn-success">
+                <i class="fas fa-file-excel me-1"></i>Export Excel
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Report Configuration -->
+<div class="row">
+    <div class="col-lg-4">
+        <div class="card manager-card">
+            <div class="card-header bg-white">
+                <h5 class="card-title mb-0"><i class="fas fa-cog me-2 text-primary"></i>Report Configuration</h5>
+            </div>
+            <div class="card-body">
+                <form method="post" asp-action="GenerateExport">
+                    <div class="mb-3">
+                        <label for="reportType" class="form-label">Report Type</label>
+                        <select class="form-select" id="reportType" name="ReportType">
+                            @foreach (var reportType in ViewBag.ReportTypes)
+                            {
+                                <option value="@reportType" selected="@(reportType == ViewBag.ReportType)">@reportType Report</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="startDate" class="form-label">Start Date</label>
+                        <input type="date" class="form-control" id="startDate" name="StartDate" 
+                               value="@ViewBag.StartDate.ToString("yyyy-MM-dd")" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="endDate" class="form-label">End Date</label>
+                        <input type="date" class="form-control" id="endDate" name="EndDate" 
+                               value="@ViewBag.EndDate.ToString("yyyy-MM-dd")" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-sync me-1"></i>Generate Report
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Quick Export Actions -->
+        <div class="card manager-card mt-4">
+            <div class="card-header bg-white">
+                <h6 class="card-title mb-0"><i class="fas fa-bolt me-2 text-warning"></i>Quick Export</h6>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="@Url.Action("DownloadReport", new { reportType = "Comprehensive", startDate = DateTime.Now.AddMonths(-1), endDate = DateTime.Now, format = "PDF" })" 
+                       class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-file-pdf me-1"></i>Last Month (PDF)
+                    </a>
+                    <a href="@Url.Action("DownloadReport", new { reportType = "Financial", startDate = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1), endDate = DateTime.Now, format = "Excel" })" 
+                       class="btn btn-outline-success btn-sm">
+                        <i class="fas fa-file-excel me-1"></i>This Month (Excel)
+                    </a>
+                    <a href="@Url.Action("DownloadReport", new { reportType = "Claims Summary", startDate = DateTime.Now.AddYears(-1), endDate = DateTime.Now, format = "PDF" })" 
+                       class="btn btn-outline-info btn-sm">
+                        <i class="fas fa-file-pdf me-1"></i>Last Year (PDF)
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-8">
+        <!-- Report Preview -->
+        <div class="card manager-card">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-chart-bar me-2 text-success"></i>
+                    @ViewBag.ReportType Report Preview
+                </h5>
+                <small class="text-muted">
+                    @ViewBag.StartDate.ToString("dd MMM yyyy") - @ViewBag.EndDate.ToString("dd MMM yyyy")
+                </small>
+            </div>
+            <div class="card-body">
+                <!-- Report Header -->
+                <div class="row mb-4">
+                    <div class="col-12 text-center">
+                        <h4 class="text-primary">CONTRACT MONTHLY CLAIM SYSTEM</h4>
+                        <h5 class="text-muted">@ViewBag.ReportType REPORT</h5>
+                        <p class="text-muted mb-0">
+                            Period: @ViewBag.StartDate.ToString("dd MMMM yyyy") to @ViewBag.EndDate.ToString("dd MMMM yyyy")
+                        </p>
+                        <small class="text-muted">Generated on: @DateTime.Now.ToString("dd MMMM yyyy 'at' HH:mm")</small>
+                    </div>
+                </div>
+
+                <!-- Summary Statistics -->
+                <div class="row mb-4">
+                    <div class="col-md-3 text-center">
+                        <div class="border rounded p-3">
+                            <div class="h4 text-primary mb-1">@Model.TotalClaims</div>
+                            <small class="text-muted">Total Claims</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3 text-center">
+                        <div class="border rounded p-3">
+                            <div class="h4 text-success mb-1">@Model.ApprovedClaims</div>
+                            <small class="text-muted">Approved</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3 text-center">
+                        <div class="border rounded p-3">
+                            <div class="h4 text-warning mb-1">@Model.PendingClaims</div>
+                            <small class="text-muted">Pending</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3 text-center">
+                        <div class="border rounded p-3">
+                            <div class="h4 text-danger mb-1">@Model.RejectedClaims</div>
+                            <small class="text-muted">Rejected</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Financial Summary -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="alert alert-success">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <strong>Total Approved Amount:</strong>
+                                    <div class="h4 mt-1">@Model.TotalAmount.ToString("C")</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>Approval Rate:</strong>
+                                    <div class="h4 mt-1">
+                                        @((Model.TotalClaims > 0 ? (decimal)Model.ApprovedClaims / Model.TotalClaims * 100 : 0).ToString("F1"))%
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Department Breakdown -->
+                <h6 class="border-bottom pb-2 mb-3">Department Performance</h6>
+                <div class="table-responsive mb-4">
+                    <table class="table table-sm table-bordered">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Department</th>
+                                <th>Total Claims</th>
+                                <th>Approved</th>
+                                <th>Amount</th>
+                                <th>Approval Rate</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var dept in Model.Statistics.DepartmentStats)
+                            {
+                                <tr>
+                                    <td class="fw-bold">@dept.Department</td>
+                                    <td>@dept.TotalClaims</td>
+                                    <td>@dept.ApprovedClaims</td>
+                                    <td class="text-success">@dept.TotalAmount.ToString("C")</td>
+                                    <td>
+                                        <div class="progress" style="height: 6px;">
+                                            <div class="progress-bar bg-success" style="width: @dept.ApprovalRate%"></div>
+                                        </div>
+                                        <small>@dept.ApprovalRate.ToString("F1")%</small>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Recent Claims -->
+                <h6 class="border-bottom pb-2 mb-3">Recent Claims Summary</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Claim ID</th>
+                                <th>Lecturer</th>
+                                <th>Department</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                                <th>Submitted</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var claim in Model.Claims.Take(10))
+                            {
+                                <tr>
+                                    <td>#@claim.ClaimID</td>
+                                    <td>@claim.Lecturer?.Name</td>
+                                    <td>@claim.Lecturer?.Department</td>
+                                    <td class="text-success">@claim.Amount.ToString("C")</td>
+                                    <td>
+                                        @switch (claim.Status)
+                                        {
+                                            case "Approved":
+                                                <span class="badge bg-success">Approved</span>
+                                                break;
+                                            case "Rejected":
+                                                <span class="badge bg-danger">Rejected</span>
+                                                break;
+                                            case "Pending":
+                                                <span class="badge bg-warning">Pending</span>
+                                                break;
+                                            default:
+                                                <span class="badge bg-secondary">@claim.Status</span>
+                                                break;
+                                        }
+                                    </td>
+                                    <td>@claim.SubmissionDate.ToString("dd MMM yyyy")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Report Footer -->
+                <div class="row mt-4 pt-3 border-top">
+                    <div class="col-12 text-center">
+                        <small class="text-muted">
+                            This report was automatically generated by the Contract Monthly Claim System.
+                            For questions, contact the Academic Manager.
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Export History -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card manager-card">
+            <div class="card-header bg-white">
+                <h5 class="card-title mb-0"><i class="fas fa-history me-2 text-info"></i>Recent Exports</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Export Date</th>
+                                <th>Report Type</th>
+                                <th>Period</th>
+                                <th>Format</th>
+                                <th>Generated By</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>@DateTime.Now.AddDays(-1).ToString("dd MMM yyyy HH:mm")</td>
+                                <td>Financial Report</td>
+                                <td>Last 30 Days</td>
+                                <td><span class="badge bg-danger">PDF</span></td>
+                                <td>Academic Manager</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-redo"></i> Regenerate
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>@DateTime.Now.AddDays(-3).ToString("dd MMM yyyy HH:mm")</td>
+                                <td>Comprehensive Report</td>
+                                <td>Last Quarter</td>
+                                <td><span class="badge bg-success">Excel</span></td>
+                                <td>Academic Manager</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-redo"></i> Regenerate
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Auto-update end date based on start date
+            $('#startDate').change(function() {
+                const startDate = new Date($(this).val());
+                const endDate = new Date($('#endDate').val());
+                
+                if (startDate > endDate) {
+                    $('#endDate').val($(this).val());
+                }
+            });
+
+            // Validate date range
+            $('form').submit(function(e) {
+                const startDate = new Date($('#startDate').val());
+                const endDate = new Date($('#endDate').val());
+                
+                if (startDate > endDate) {
+                    e.preventDefault();
+                    alert('End date must be after start date.');
+                    return false;
+                }
+            });
+        });
+    </script>
+}

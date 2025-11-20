@@ -1,0 +1,318 @@
+@model List<Claim>
+@{
+    ViewData["Title"] = "Claim History";
+}
+
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-4 border-bottom">
+    <h1 class="h2">Claim History</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="@Url.Action("Dashboard")" class="btn btn-sm btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i>Back to Dashboard
+        </a>
+    </div>
+</div>
+
+<!-- Statistics Summary -->
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card dashboard-card">
+            <div class="card-body text-center">
+                <h3 class="text-primary">@Model.Count</h3>
+                <p class="text-muted mb-0">Total Claims</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card dashboard-card">
+            <div class="card-body text-center">
+                <h3 class="text-success">@Model.Count(c => c.Status == "Approved")</h3>
+                <p class="text-muted mb-0">Approved</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card dashboard-card">
+            <div class="card-body text-center">
+                <h3 class="text-warning">@Model.Count(c => c.Status == "Pending" || c.Status == "Under Review")</h3>
+                <p class="text-muted mb-0">In Progress</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card dashboard-card">
+            <div class="card-body text-center">
+                <h3 class="text-danger">@Model.Count(c => c.Status == "Rejected")</h3>
+                <p class="text-muted mb-0">Rejected</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Claims History Table -->
+<div class="row">
+    <div class="col-12">
+        <div class="card dashboard-card">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0"><i class="fas fa-history me-2"></i>Complete Claim History</h5>
+                <div class="input-group" style="width: 300px;">
+                    <input type="text" class="form-control form-control-sm" placeholder="Search claims..." id="searchInput">
+                    <button class="btn btn-sm btn-outline-secondary" type="button" id="clearSearch">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                @if (Model.Any())
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="historyTable">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Claim ID</th>
+                                    <th>Submission Date</th>
+                                    <th>Hours Worked</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                    <th>Last Activity</th>
+                                    <th>Documents</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var claim in Model)
+                                {
+                                    <tr>
+                                        <td>
+                                            <strong>#@claim.ClaimID</strong>
+                                        </td>
+                                        <td>@claim.SubmissionDate.ToString("dd MMM yyyy")</td>
+                                        <td>@claim.HoursWorked</td>
+                                        <td>
+                                            <strong>@claim.Amount.ToString("C")</strong>
+                                        </td>
+                                        <td>
+                                            <span class="status-badge badge @GetStatusBadgeClass(claim.Status)">
+                                                @claim.Status
+                                            </span>
+                                        </td>
+                                        <td>
+                                            @{
+                                                var lastActivity = claim.AuditTrails?
+                                                    .OrderByDescending(a => a.Timestamp)
+                                                    .FirstOrDefault()?.Timestamp ?? claim.SubmissionDate;
+                                                var activityText = claim.AuditTrails?
+                                                    .OrderByDescending(a => a.Timestamp)
+                                                    .FirstOrDefault()?.Action ?? "Submitted";
+                                            }
+                                            <small>
+                                                @lastActivity.ToString("dd MMM yy")<br>
+                                                <span class="text-muted">@activityText</span>
+                                            </small>
+                                        </td>
+                                        <td>
+                                            @if (claim.SupportingDocuments?.Any() == true)
+                                            {
+                                                <div class="dropdown">
+                                                    <button class="btn btn-sm btn-outline-success dropdown-toggle" 
+                                                            type="button" data-bs-toggle="dropdown">
+                                                        <i class="fas fa-file me-1"></i>@claim.SupportingDocuments.Count
+                                                    </button>
+                                                    <ul class="dropdown-menu">
+                                                        @foreach (var doc in claim.SupportingDocuments.Take(3))
+                                                        {
+                                                            <li>
+                                                                <a class="dropdown-item small" href="#">
+                                                                    <i class="fas fa-file-@GetFileIcon(doc.FileName) me-1"></i>
+                                                                    @doc.FileName
+                                                                </a>
+                                                            </li>
+                                                        }
+                                                        @if (claim.SupportingDocuments.Count > 3)
+                                                        {
+                                                            <li><hr class="dropdown-divider"></li>
+                                                            <li><a class="dropdown-item small text-center" href="#">
+                                                                +@(claim.SupportingDocuments.Count - 3) more
+                                                            </a></li>
+                                                        }
+                                                    </ul>
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-warning">No documents</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <div class="btn-group" role="group">
+                                                <a href="@Url.Action("ClaimDetails", new { id = claim.ClaimID })" 
+                                                   class="btn btn-sm btn-outline-primary" data-bs-toggle="tooltip" title="View Details">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                                <button class="btn btn-sm btn-outline-info view-timeline" 
+                                                        data-claim-id="@claim.ClaimID"
+                                                        data-bs-toggle="tooltip" title="View Timeline">
+                                                    <i class="fas fa-history"></i>
+                                                </button>
+                                                @if (claim.Status == "Rejected")
+                                                {
+                                                    <a href="@Url.Action("SubmitClaim")" 
+                                                       class="btn btn-sm btn-outline-warning" data-bs-toggle="tooltip" title="Resubmit Claim">
+                                                        <i class="fas fa-redo"></i>
+                                                    </a>
+                                                }
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Export Options -->
+                    <div class="mt-3 d-flex justify-content-between align-items-center">
+                        <small class="text-muted">Showing @Model.Count claims</small>
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="exportToCSV()">
+                                <i class="fas fa-download me-1"></i>Export CSV
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-success" onclick="window.print()">
+                                <i class="fas fa-print me-1"></i>Print
+                            </button>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="text-center py-5">
+                        <i class="fas fa-history fa-4x text-muted mb-3"></i>
+                        <h4 class="text-muted">No Claim History</h4>
+                        <p class="text-muted">You haven't submitted any claims yet.</p>
+                        <a href="@Url.Action("SubmitClaim")" class="btn btn-primary">
+                            <i class="fas fa-plus-circle me-1"></i>Submit Your First Claim
+                        </a>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Initialize tooltips
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+
+            // Search functionality
+            $('#searchInput').on('input', function() {
+                var searchText = $(this).val().toLowerCase();
+                $('#historyTable tbody tr').each(function() {
+                    var rowText = $(this).text().toLowerCase();
+                    $(this).toggle(rowText.indexOf(searchText) > -1);
+                });
+            });
+
+            // Clear search
+            $('#clearSearch').click(function() {
+                $('#searchInput').val('');
+                $('#historyTable tbody tr').show();
+            });
+
+            // Timeline functionality
+            $('.view-timeline').click(function() {
+                var claimId = $(this).data('claim-id');
+                // You can implement the same timeline modal here
+                alert('Timeline view for claim #' + claimId + ' would open here.');
+            });
+        });
+
+        function exportToCSV() {
+            // Simple CSV export implementation
+            let csv = [];
+            let rows = document.querySelectorAll("#historyTable tr");
+
+            for (let i = 0; i < rows.length; i++) {
+                let row = [], cols = rows[i].querySelectorAll("td, th");
+
+                for (let j = 0; j < cols.length - 1; j++) { // Exclude actions column
+                    row.push(cols[j].innerText);
+                }
+
+                csv.push(row.join(","));
+            }
+
+            // Download CSV file
+            let csvFile = new Blob([csv.join("\n")], { type: "text/csv" });
+            let downloadLink = document.createElement("a");
+            downloadLink.download = "claim-history.csv";
+            downloadLink.href = window.URL.createObjectURL(csvFile);
+            downloadLink.style.display = "none";
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            document.body.removeChild(downloadLink);
+        }
+    </script>
+
+    <style>
+        .status-badge {
+            font-size: 0.75rem;
+            padding: 0.35rem 0.65rem;
+        }
+
+        @@media print {
+            .btn, .dropdown, .input-group {
+                display: none !important;
+            }
+
+            .card-header {
+                background: white !important;
+                border-bottom: 2px solid #dee2e6;
+            }
+
+            .table {
+                font-size: 0.875rem;
+            }
+        }
+    </style>
+}
+
+@* Helper methods for C# code *@
+@functions {
+    public string GetStatusBadgeClass(string status)
+    {
+        return status switch
+        {
+            "Pending" or "Under Review" => "bg-warning",
+            "Approved" => "bg-success",
+            "Rejected" => "bg-danger",
+            _ => "bg-secondary"
+        };
+    }
+
+    public string GetStatusTextClass(string status)
+    {
+        return status switch
+        {
+            "Pending" or "Under Review" => "text-warning",
+            "Approved" => "text-success",
+            "Rejected" => "text-danger",
+            _ => "text-secondary"
+        };
+    }
+
+    public string GetFileIcon(string fileName)
+    {
+        var extension = System.IO.Path.GetExtension(fileName).ToLower();
+        return extension switch
+        {
+            ".pdf" => "pdf",
+            ".docx" => "word",
+            ".xlsx" => "excel",
+            ".jpg" or ".jpeg" or ".png" => "image",
+            _ => "alt"
+        };
+    }
+}

@@ -1,0 +1,227 @@
+@model ContractMonthlyClaimSystem.Models.ViewModels.BulkUpdateViewModel
+@{
+    ViewData["Title"] = "Bulk Operations";
+    Layout = "_HRLayout";
+}
+
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-4 border-bottom">
+    <h1 class="h2">Bulk Operations</h1>
+</div>
+
+<!-- Bulk Hourly Rate Update -->
+<div class="card hr-card mb-4">
+    <div class="card-header bg-white">
+        <h5 class="card-title mb-0">
+            <i class="fas fa-money-bill-wave me-2"></i>Bulk Hourly Rate Update
+        </h5>
+    </div>
+    <div class="card-body">
+        <form method="post" asp-action="BulkUpdateHourlyRates">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Department</label>
+                    <select name="Department" class="form-select">
+                        <option value="All">All Departments</option>
+                        <option value="Computer Science">Computer Science</option>
+                        <option value="Mathematics">Mathematics</option>
+                        <option value="Physics">Physics</option>
+                        <option value="Engineering">Engineering</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Update Type</label>
+                    <select name="UpdateType" class="form-select">
+                        <option value="Fixed">Fixed Amount</option>
+                        <option value="Percentage">Percentage Increase</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">New Value</label>
+                    <div class="input-group">
+                        <span class="input-group-text">
+                            <i class="fas fa-dollar-sign"></i>
+                        </span>
+                        <input type="number" step="0.01" class="form-control" name="NewValue" required>
+                        <span class="input-group-text update-type-suffix">per hour</span>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        This action will update hourly rates for all lecturers in the selected department. This cannot be undone.
+                    </div>
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-warning">
+                        <i class="fas fa-sync-alt me-1"></i>Update Hourly Rates
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Bulk Status Update -->
+    <div class="col-md-6 mb-4">
+        <div class="card hr-card h-100">
+            <div class="card-header bg-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-user-cog me-2"></i>Bulk Status Management
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post" asp-action="BulkUpdateStatus">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label">Select Department</label>
+                            <select name="Department" class="form-select">
+                                <option value="All">All Departments</option>
+                                <option value="Computer Science">Computer Science</option>
+                                <option value="Mathematics">Mathematics</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Set Status</label>
+                            <select name="Status" class="form-select">
+                                <option value="Active">Active</option>
+                                <option value="Inactive">Inactive</option>
+                                <option value="Suspended">Suspended</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-user-edit me-1"></i>Update Status
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Data Export -->
+    <div class="col-md-6 mb-4">
+        <div class="card hr-card h-100">
+            <div class="card-header bg-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-file-export me-2"></i>Bulk Data Export
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post" asp-action="ExportData">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label">Export Type</label>
+                            <select name="ExportType" class="form-select">
+                                <option value="Lecturers">Lecturer Data</option>
+                                <option value="Claims">Claims Data</option>
+                                <option value="Payments">Payment History</option>
+                                <option value="All">Complete Dataset</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Date Range</label>
+                            <div class="row g-2">
+                                <div class="col-6">
+                                    <input type="date" name="StartDate" class="form-control" placeholder="Start Date">
+                                </div>
+                                <div class="col-6">
+                                    <input type="date" name="EndDate" class="form-control" placeholder="End Date">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Format</label>
+                            <div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="Format" value="Excel" checked>
+                                    <label class="form-check-label">Excel</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="Format" value="CSV">
+                                    <label class="form-check-label">CSV</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="Format" value="PDF">
+                                    <label class="form-check-label">PDF</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-success w-100">
+                                <i class="fas fa-download me-1"></i>Export Data
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Bulk Operations -->
+<div class="card hr-card">
+    <div class="card-header bg-white">
+        <h5 class="card-title mb-0">
+            <i class="fas fa-history me-2"></i>Recent Bulk Operations
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Operation</th>
+                        <th>Initiated By</th>
+                        <th>Date & Time</th>
+                        <th>Scope</th>
+                        <th>Status</th>
+                        <th>Details</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Hourly Rate Update</td>
+                        <td>John Doe</td>
+                        <td>01 Dec 2024 14:30</td>
+                        <td>Computer Science Dept</td>
+                        <td><span class="badge bg-success">Completed</span></td>
+                        <td>Updated 15 records</td>
+                    </tr>
+                    <tr>
+                        <td>Status Update</td>
+                        <td>Jane Smith</td>
+                        <td>30 Nov 2024 10:15</td>
+                        <td>All Departments</td>
+                        <td><span class="badge bg-success">Completed</span></td>
+                        <td>Activated 8 accounts</td>
+                    </tr>
+                    <tr>
+                        <td>Data Export</td>
+                        <td>John Doe</td>
+                        <td>28 Nov 2024 16:45</td>
+                        <td>Claims Data</td>
+                        <td><span class="badge bg-success">Completed</span></td>
+                        <td>Exported 234 records</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // Update suffix based on selected type
+            $('select[name="UpdateType"]').change(function () {
+                var suffix = $(this).val() === 'Percentage' ? '% increase' : 'per hour';
+                $('.update-type-suffix').text(suffix);
+            });
+
+            // Initialize on page load
+            $('select[name="UpdateType"]').trigger('change');
+        });
+    </script>
+}

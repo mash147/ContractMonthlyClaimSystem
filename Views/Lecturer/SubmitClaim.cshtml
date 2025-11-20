@@ -1,0 +1,130 @@
+@model Claim
+
+@{
+    ViewData["Title"] = "Submit New Claim";
+}
+
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-4 border-bottom">
+    <h1 class="h2">Submit New Claim</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="@Url.Action("Dashboard")" class="btn btn-sm btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i>Back to Dashboard
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card dashboard-card">
+            <div class="card-header bg-white">
+                <h5 class="card-title mb-0"><i class="fas fa-file-invoice me-2"></i>Claim Information</h5>
+            </div>
+            <div class="card-body">
+                <form asp-action="SubmitClaim" method="post" enctype="multipart/form-data" id="claimForm">
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label asp-for="HoursWorked" class="form-label">Hours Worked</label>
+                            <input asp-for="HoursWorked" class="form-control" type="number" step="0.1" min="0" max="200" 
+                                   oninput="calculateAmount()" />
+                            <span asp-validation-for="HoursWorked" class="text-danger"></span>
+                            <div class="form-text">Enter total hours worked for this claim period</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Hourly Rate</label>
+                            <input type="text" class="form-control" value="@(ViewBag.HourlyRate?.ToString("C") ?? "N/A")" readonly />
+                            <div class="form-text">Your contracted hourly rate</div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Calculated Amount</label>
+                            <input type="text" class="form-control" id="calculatedAmount" readonly />
+                            <div class="form-text">Automatically calculated based on hours and rate</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Submission Date</label>
+                            <input type="text" class="form-control" value="@DateTime.Now.ToString("dd MMMM yyyy")" readonly />
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="AdditionalNotes" class="form-label">Additional Notes</label>
+                        <textarea asp-for="AdditionalNotes" class="form-control" rows="4" 
+                                  placeholder="Enter any additional information about this claim..."></textarea>
+                        <span asp-validation-for="AdditionalNotes" class="text-danger"></span>
+                        <div class="form-text">Optional: Add details about the work performed</div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label">Supporting Document</label>
+                        <input type="file" name="supportingDocument" class="form-control" 
+                               accept=".pdf,.docx,.xlsx,.jpg,.jpeg,.png" />
+                        <div class="form-text">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Allowed file types: PDF, DOCX, XLSX, JPG, PNG. Maximum file size: 5MB.
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="@Url.Action("Dashboard")" class="btn btn-outline-secondary me-md-2">
+                            <i class="fas fa-times me-1"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-paper-plane me-1"></i>Submit Claim
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card dashboard-card">
+            <div class="card-header bg-white">
+                <h5 class="card-title mb-0"><i class="fas fa-lightbulb me-2"></i>Tips</h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <h6><i class="fas fa-info-circle me-2"></i>Before Submitting:</h6>
+                    <ul class="mb-0 ps-3">
+                        <li>Double-check your hours worked</li>
+                        <li>Ensure supporting documents are ready</li>
+                        <li>Add clear notes for reviewers</li>
+                        <li>Verify your hourly rate is correct</li>
+                    </ul>
+                </div>
+                
+                <div class="alert alert-warning">
+                    <h6><i class="fas fa-exclamation-triangle me-2"></i>Important:</h6>
+                    <ul class="mb-0 ps-3">
+                        <li>Claims typically processed within 5-7 days</li>
+                        <li>You can track status in real-time</li>
+                        <li>Upload additional documents later if needed</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function calculateAmount() {
+            var hours = parseFloat($('#HoursWorked').val()) || 0;
+            var hourlyRate = @(ViewBag.HourlyRate ?? 0);
+            var amount = hours * hourlyRate;
+            $('#calculatedAmount').val('$' + amount.toFixed(2));
+        }
+
+        $(document).ready(function() {
+            // Initial calculation
+            calculateAmount();
+            
+            // Real-time calculation
+            $('#HoursWorked').on('input', calculateAmount);
+        });
+    </script>
+}

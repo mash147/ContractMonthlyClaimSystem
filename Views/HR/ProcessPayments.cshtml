@@ -1,0 +1,174 @@
+@model ContractMonthlyClaimSystem.Models.ViewModels.PaymentBatchViewModel
+@{
+    ViewData["Title"] = "Process Payments";
+    Layout = "_HRLayout";
+}
+
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-4 border-bottom">
+    <h1 class="h2">Process Payments</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <div class="btn-group me-2">
+            <select id="periodSelect" class="form-select form-select-sm">
+                <option value="current" selected="@(Model.Period == "current")">CURRENT MONTH</option>
+                <option value="previous" selected="@(Model.Period == "previous")">PREVIOUS MONTH</option>
+            </select>
+        </div>
+    </div>
+</div>
+
+<!-- Period Summary -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card hr-card border-start border-primary border-4">
+            <div class="card-body">
+                <div class="text-xs fw-bold text-primary text-uppercase mb-1">Period</div>
+                <div class="h5 mb-0 fw-bold text-gray-800">@Model.StartDate.ToString("MMM yyyy")</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card hr-card border-start border-success border-4">
+            <div class="card-body">
+                <div class="text-xs fw-bold text-success text-uppercase mb-1">Approved Claims</div>
+                <div class="h5 mb-0 fw-bold text-gray-800">@Model.TotalClaims</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card hr-card border-start border-warning border-4">
+            <div class="card-body">
+                <div class="text-xs fw-bold text-warning text-uppercase mb-1">Total Amount</div>
+                <div class="h5 mb-0 fw-bold text-gray-800">@Model.TotalAmount.ToString("C")</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card hr-card border-start border-info border-4">
+            <div class="card-body">
+                <div class="text-xs fw-bold text-info text-uppercase mb-1">Date Range</div>
+                <div class="h6 mb-0 fw-bold text-gray-800">
+                    @Model.StartDate.ToString("dd MMM") - @Model.EndDate.ToString("dd MMM yyyy")
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Claims List -->
+<div class="card hr-card">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">
+            <i class="fas fa-money-bill-wave me-2"></i>Approved Claims Ready for Payment
+        </h5>
+        <div>
+            <button type="button" id="selectAllBtn" class="btn btn-sm btn-outline-primary me-2">
+                <i class="fas fa-check-double me-1"></i>Select All
+            </button>
+            <form method="post" asp-action="GeneratePaymentBatch" class="d-inline">
+                <button type="submit" id="generateBatchBtn" class="btn btn-sm btn-success" disabled>
+                    <i class="fas fa-file-invoice-dollar me-1"></i>Generate Payment Batch
+                </button>
+            </form>
+        </div>
+    </div>
+    <div class="card-body">
+        @if (!Model.Claims.Any())
+        {
+            <div class="text-center py-5">
+                <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                <h4>No Pending Payments</h4>
+                <p class="text-muted">All approved claims for this period have been processed.</p>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th width="50">
+                                <input type="checkbox" id="selectAllCheckbox">
+                            </th>
+                            <th>Claim ID</th>
+                            <th>Lecturer</th>
+                            <th>Department</th>
+                            <th>Submission Date</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var claim in Model.Claims)
+                        {
+                            <tr>
+                                <td>
+                                    <input type="checkbox" class="claim-checkbox" name="SelectedClaimIds" value="@claim.ClaimID">
+                                </td>
+                                <td>#@claim.ClaimID</td>
+                                <td>
+                                    <strong>@claim.Lecturer?.Name</strong>
+                                    <br>
+                                    <small class="text-muted">@claim.Lecturer?.User?.EmployeeId</small>
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary">@claim.Lecturer?.Department</span>
+                                </td>
+                                <td>@claim.SubmissionDate.ToString("dd MMM yyyy")</td>
+                                <td>
+                                    <strong>@claim.Amount.ToString("C")</strong>
+                                </td>
+                                <td>
+                                    <span class="badge bg-success">Approved</span>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // Period selection
+            $('#periodSelect').change(function () {
+                window.location.href = '@Url.Action("ProcessPayments")?period=' + $(this).val();
+            });
+
+            // Select all functionality
+            $('#selectAllCheckbox').change(function () {
+                $('.claim-checkbox').prop('checked', $(this).prop('checked'));
+                updateGenerateButton();
+            });
+
+            $('.claim-checkbox').change(function () {
+                updateGenerateButton();
+                updateSelectAllCheckbox();
+            });
+
+            $('#selectAllBtn').click(function () {
+                $('.claim-checkbox').prop('checked', true);
+                updateGenerateButton();
+                updateSelectAllCheckbox();
+            });
+
+            function updateGenerateButton() {
+                var selectedCount = $('.claim-checkbox:checked').length;
+                $('#generateBatchBtn').prop('disabled', selectedCount === 0);
+                if (selectedCount > 0) {
+                    $('#generateBatchBtn').html('<i class="fas fa-file-invoice-dollar me-1"></i>Generate Payment Batch (' + selectedCount + ')');
+                } else {
+                    $('#generateBatchBtn').html('<i class="fas fa-file-invoice-dollar me-1"></i>Generate Payment Batch');
+                }
+            }
+
+            function updateSelectAllCheckbox() {
+                var total = $('.claim-checkbox').length;
+                var checked = $('.claim-checkbox:checked').length;
+                $('#selectAllCheckbox').prop('checked', total > 0 && total === checked);
+            }
+        });
+    </script>
+}

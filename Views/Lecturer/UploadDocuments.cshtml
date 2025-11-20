@@ -1,0 +1,249 @@
+@{
+    ViewData["Title"] = "Upload Documents";
+}
+
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-4 border-bottom">
+    <h1 class="h2">Upload Documents</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="@Url.Action("Dashboard")" class="btn btn-sm btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i>Back to Dashboard
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card dashboard-card">
+            <div class="card-header bg-white">
+                <h5 class="card-title mb-0"><i class="fas fa-upload me-2"></i>Upload Supporting Documents</h5>
+            </div>
+            <div class="card-body">
+                <form id="uploadForm" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="claimSelect" class="form-label">Select Claim</label>
+                        <select class="form-select" id="claimSelect" required>
+                            <option value="">-- Select a claim --</option>
+                            @if (ViewBag.Claims != null)
+                            {
+                                foreach (var claim in ViewBag.Claims)
+                                {
+                                    <option value="@claim.ClaimID" 
+                                            data-selected="@(ViewBag.SelectedClaimId == claim.ClaimID ? "true" : "false")">
+                                        Claim #@claim.ClaimID - @claim.SubmissionDate.ToString("dd/MM/yyyy") - @claim.Amount.ToString("C")
+                                    </option>
+                                }
+                            }
+                        </select>
+                        <div class="form-text">Select the claim you want to attach documents to</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="fileInput" class="form-label">Choose Document</label>
+                        <input type="file" class="form-control" id="fileInput" accept=".pdf,.docx,.xlsx,.jpg,.jpeg,.png" required />
+                        <div class="form-text">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Allowed file types: PDF, DOCX, XLSX, JPG, PNG. Maximum file size: 5MB.
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="progress d-none" id="uploadProgress">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                                 role="progressbar" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-success" id="uploadButton">
+                            <i class="fas fa-upload me-1"></i>Upload Document
+                        </button>
+                    </div>
+                </form>
+
+                <div id="uploadResult" class="mt-3"></div>
+            </div>
+        </div>
+
+        <!-- Uploaded Documents -->
+        <div class="card dashboard-card mt-4">
+            <div class="card-header bg-white">
+                <h5 class="card-title mb-0"><i class="fas fa-files me-2"></i>Recently Uploaded Documents</h5>
+            </div>
+            <div class="card-body">
+                <div id="documentsList">
+                    <p class="text-muted">Select a claim to view uploaded documents...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card dashboard-card">
+            <div class="card-header bg-white">
+                <h5 class="card-title mb-0"><i class="fas fa-question-circle me-2"></i>Document Guidelines</h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <h6><i class="fas fa-info-circle me-2"></i>Supported Documents:</h6>
+                    <ul class="mb-0 ps-3">
+                        <li>Timesheets (PDF, Excel)</li>
+                        <li>Approval emails (PDF)</li>
+                        <li>Work completion certificates</li>
+                        <li>Meeting attendance records</li>
+                        <li>Other supporting evidence</li>
+                    </ul>
+                </div>
+                
+                <div class="alert alert-warning">
+                    <h6><i class="fas fa-exclamation-triangle me-2"></i>Requirements:</h6>
+                    <ul class="mb-0 ps-3">
+                        <li>Clear and readable documents</li>
+                        <li>File size under 5MB each</li>
+                        <li>Relevant to the claim</li>
+                        <li>No password-protected files</li>
+                    </ul>
+                </div>
+
+                <div class="alert alert-success">
+                    <h6><i class="fas fa-lightbulb me-2"></i>Tips:</h6>
+                    <ul class="mb-0 ps-3">
+                        <li>Upload multiple documents if needed</li>
+                        <li>Use descriptive file names</li>
+                        <li>Keep documents organized by claim</li>
+                        <li>You can delete and re-upload if needed</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Set selected claim if provided
+            @if (ViewBag.SelectedClaimId != null)
+            {
+                <text>$('#claimSelect').val('@ViewBag.SelectedClaimId');</text>
+                <text>loadDocuments('@ViewBag.SelectedClaimId');</text>
+            }
+
+            // Load documents when claim selection changes
+            $('#claimSelect').change(function() {
+                var claimId = $(this).val();
+                if (claimId) {
+                    loadDocuments(claimId);
+                } else {
+                    $('#documentsList').html('<p class="text-muted">Select a claim to view uploaded documents...</p>');
+                }
+            });
+
+            // Handle form submission
+            $('#uploadForm').submit(function(e) {
+                e.preventDefault();
+                
+                var claimId = $('#claimSelect').val();
+                var fileInput = $('#fileInput')[0];
+                
+                if (!claimId) {
+                    showResult('Please select a claim first.', 'danger');
+                    return;
+                }
+                
+                if (!fileInput.files.length) {
+                    showResult('Please select a file to upload.', 'danger');
+                    return;
+                }
+
+                uploadDocument(claimId, fileInput.files[0]);
+            });
+        });
+
+        function uploadDocument(claimId, file) {
+            var formData = new FormData();
+            formData.append('claimId', claimId);
+            formData.append('file', file);
+
+            $('#uploadProgress').removeClass('d-none');
+            $('#uploadButton').prop('disabled', true);
+
+            $.ajax({
+                url: '@Url.Action("UploadDocuments", "Lecturer")',
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                xhr: function() {
+                    var xhr = new window.XMLHttpRequest();
+                    xhr.upload.addEventListener('progress', function(evt) {
+                        if (evt.lengthComputable) {
+                            var percentComplete = (evt.loaded / evt.total) * 100;
+                            $('#uploadProgress .progress-bar').css('width', percentComplete + '%');
+                        }
+                    }, false);
+                    return xhr;
+                },
+                success: function(response) {
+                    if (response.success) {
+                        showResult(response.message, 'success');
+                        $('#fileInput').val('');
+                        loadDocuments(claimId);
+                    } else {
+                        showResult(response.message, 'danger');
+                    }
+                },
+                error: function() {
+                    showResult('An error occurred during upload.', 'danger');
+                },
+                complete: function() {
+                    $('#uploadProgress').addClass('d-none');
+                    $('#uploadProgress .progress-bar').css('width', '0%');
+                    $('#uploadButton').prop('disabled', false);
+                }
+            });
+        }
+
+        function loadDocuments(claimId) {
+            $.get('@Url.Action("GetClaimDocuments", "Lecturer")', { claimId: claimId })
+                .done(function(data) {
+                    $('#documentsList').html(data);
+                })
+                .fail(function() {
+                    $('#documentsList').html('<p class="text-danger">Error loading documents.</p>');
+                });
+        }
+
+        function showResult(message, type) {
+            var alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+            var icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
+            
+            $('#uploadResult').html(
+                '<div class="alert ' + alertClass + ' alert-dismissible fade show">' +
+                '<i class="fas ' + icon + ' me-2"></i>' + message +
+                '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>' +
+                '</div>'
+            );
+        }
+
+        function deleteDocument(documentId) {
+            if (confirm('Are you sure you want to delete this document?')) {
+                $.post('@Url.Action("DeleteDocument", "Lecturer")', { documentId: documentId })
+                    .done(function(response) {
+                        if (response.success) {
+                            showResult(response.message, 'success');
+                            // Reload documents for current claim
+                            var currentClaimId = $('#claimSelect').val();
+                            if (currentClaimId) {
+                                loadDocuments(currentClaimId);
+                            }
+                        } else {
+                            showResult(response.message, 'danger');
+                        }
+                    })
+                    .fail(function() {
+                        showResult('Error deleting document.', 'danger');
+                    });
+            }
+        }
+    </script>
+}

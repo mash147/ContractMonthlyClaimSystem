@@ -1,0 +1,455 @@
+@model List<Claim>
+@{
+    ViewData["Title"] = "Coordinator Dashboard";
+}
+
+<!-- Welcome Section -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="welcome-section bg-gradient-primary text-white p-4 rounded coordinator-card">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h2 class="mb-2">Welcome, @User.Identity?.Name!</h2>
+                    <p class="lead mb-0">@(User.IsInRole("Manager") ? "Academic Manager" : "Programme Coordinator") Dashboard - Contract Monthly Claim System</p>
+                </div>
+                <div class="col-md-4 text-md-end">
+                    <div class="current-date bg-white text-dark rounded p-2 d-inline-block">
+                        <i class="fas fa-calendar-alt me-2 text-primary"></i>
+                        <strong>@DateTime.Now.ToString("dddd, MMMM dd, yyyy")</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Stats Cards -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card coordinator-card border-left-primary shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                            Pending Claims
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">@ViewBag.PendingClaimsCount</div>
+                        <div class="mt-2 mb-0 text-muted text-xs">
+                            <span class="text-success mr-2">
+                                <i class="fas fa-arrow-up"></i> Needs Review
+                            </span>
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-clock fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card coordinator-card border-left-success shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                            Approved This Month
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">@ViewBag.ApprovedThisMonth</div>
+                        <div class="mt-2 mb-0 text-muted text-xs">
+                            <span class="text-success mr-2">
+                                <i class="fas fa-check"></i> Completed
+                            </span>
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card coordinator-card border-left-info shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                            Documents to Verify
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">@ViewBag.DocumentsToVerify</div>
+                        <div class="mt-2 mb-0 text-muted text-xs">
+                            <span class="text-info mr-2">
+                                <i class="fas fa-file"></i> Awaiting Verification
+                            </span>
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-file-check fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card coordinator-card border-left-warning shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                            Total Claims
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">@ViewBag.TotalClaimsCount</div>
+                        <div class="mt-2 mb-0 text-muted text-xs">
+                            <span class="text-warning mr-2">
+                                <i class="fas fa-list"></i> All Time
+                            </span>
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-list-alt fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts and Additional Metrics -->
+<div class="row mb-4">
+    <!-- Claim Status Distribution -->
+    <div class="col-xl-8 col-lg-7">
+        <div class="card coordinator-card mb-4">
+            <div class="card-header bg-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-chart-pie me-2 text-primary"></i>Claim Status Distribution
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-2 col-6 mb-3">
+                        <div class="card bg-primary text-white">
+                            <div class="card-body py-3">
+                                <h4 class="mb-1">@ViewBag.PendingClaimsCount</h4>
+                                <small>Pending</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2 col-6 mb-3">
+                        <div class="card bg-success text-white">
+                            <div class="card-body py-3">
+                                <h4 class="mb-1">@ViewBag.ApprovedThisMonth</h4>
+                                <small>Approved</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2 col-6 mb-3">
+                        <div class="card bg-info text-white">
+                            <div class="card-body py-3">
+                                <h4 class="mb-1">@ViewBag.UnderReviewCount</h4>
+                                <small>Under Review</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2 col-6 mb-3">
+                        <div class="card bg-warning text-white">
+                            <div class="card-body py-3">
+                                <h4 class="mb-1">@ViewBag.RevisionRequestedCount</h4>
+                                <small>Revision Needed</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2 col-6 mb-3">
+                        <div class="card bg-secondary text-white">
+                            <div class="card-body py-3">
+                                <h4 class="mb-1">@ViewBag.RejectedCount</h4>
+                                <small>Rejected</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2 col-6 mb-3">
+                        <div class="card bg-dark text-white">
+                            <div class="card-body py-3">
+                                <h4 class="mb-1">@ViewBag.TotalAmount.ToString("C")</h4>
+                                <small>Total Amount</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="col-xl-4 col-lg-5">
+        <div class="card coordinator-card mb-4">
+            <div class="card-header bg-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-bolt me-2 text-warning"></i>Quick Actions
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="@Url.Action("ReviewClaims")" class="btn btn-primary text-start">
+                        <i class="fas fa-clipboard-check me-2"></i>Review Claims
+                        @if (ViewBag.PendingClaimsCount > 0)
+                        {
+                            <span class="badge bg-warning float-end">@ViewBag.PendingClaimsCount</span>
+                        }
+                    </a>
+                    <a href="@Url.Action("VerifyDocuments")" class="btn btn-info text-start">
+                        <i class="fas fa-file-check me-2"></i>Verify Documents
+                        @if (ViewBag.DocumentsToVerify > 0)
+                        {
+                            <span class="badge bg-warning float-end">@ViewBag.DocumentsToVerify</span>
+                        }
+                    </a>
+                    <a href="@Url.Action("GenerateReports")" class="btn btn-success text-start">
+                        <i class="fas fa-chart-bar me-2"></i>Generate Reports
+                    </a>
+                    <a href="@Url.Action("ReviewClaims", new { status = "Revision Requested" })" class="btn btn-warning text-start">
+                        <i class="fas fa-edit me-2"></i>Review Revisions
+                        @if (ViewBag.RevisionRequestedCount > 0)
+                        {
+                            <span class="badge bg-danger float-end">@ViewBag.RevisionRequestedCount</span>
+                        }
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Pending Claims for Review -->
+<div class="row">
+    <div class="col-12">
+        <div class="card coordinator-card">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-clock me-2 text-warning"></i>Pending Claims for Review
+                    <span class="badge bg-warning ms-2">@Model.Count claims</span>
+                </h5>
+                <a href="@Url.Action("ReviewClaims")" class="btn btn-sm btn-primary">
+                    <i class="fas fa-list me-1"></i>View All
+                </a>
+            </div>
+            <div class="card-body">
+                @if (Model.Any())
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Claim ID</th>
+                                    <th>Lecturer</th>
+                                    <th>Department</th>
+                                    <th>Hours</th>
+                                    <th>Amount</th>
+                                    <th>Submitted</th>
+                                    <th>Documents</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var claim in Model.Take(5))
+                                {
+                                    <tr>
+                                        <td><strong>#@claim.ClaimID</strong></td>
+                                        <td>@claim.Lecturer?.Name</td>
+                                        <td>@claim.Lecturer?.Department</td>
+                                        <td>@claim.HoursWorked</td>
+                                        <td>@claim.Amount.ToString("C")</td>
+                                        <td>@claim.SubmissionDate.ToString("dd/MM/yyyy")</td>
+                                        <td>
+                                            @if (claim.SupportingDocuments?.Any() == true)
+                                            {
+                                                <span class="badge bg-success">@claim.SupportingDocuments.Count</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-warning">None</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <div class="btn-group" role="group">
+                                                <a href="@Url.Action("ReviewClaim", new { id = claim.ClaimID })"
+                                                   class="btn btn-sm btn-outline-primary">
+                                                    <i class="fas fa-eye"></i> Review
+                                                </a>
+                                                <a href="@Url.Action("VerifyDocuments", new { claimId = claim.ClaimID })"
+                                                   class="btn btn-sm btn-outline-info">
+                                                    <i class="fas fa-file-check"></i> Docs
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                    @if (Model.Count > 5)
+                    {
+                        <div class="text-center mt-3">
+                            <a href="@Url.Action("ReviewClaims")" class="btn btn-outline-primary">
+                                <i class="fas fa-arrow-right me-1"></i>View All @Model.Count Pending Claims
+                            </a>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="text-center py-4">
+                        <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                        <h5 class="text-success">No Pending Claims!</h5>
+                        <p class="text-muted">There are currently no claims waiting for your review.</p>
+                        <a href="@Url.Action("ReviewClaims")" class="btn btn-primary">
+                            <i class="fas fa-list me-1"></i>View All Claims
+                        </a>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Activity -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card coordinator-card">
+            <div class="card-header bg-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-history me-2 text-info"></i>Recent Activity
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="timeline">
+                    @{
+                        var recentActivities = Model
+                        .SelectMany(c => c.AuditTrails)
+                        .OrderByDescending(a => a.Timestamp)
+                        .Take(6)
+                        .ToList();
+                    }
+
+                    @if (recentActivities.Any())
+                    {
+                        foreach (var activity in recentActivities)
+                        {
+                            <div class="timeline-item mb-3">
+                                <div class="timeline-marker bg-@GetActivityColor(activity.Action)"></div>
+                                <div class="timeline-content">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <strong>@activity.Action</strong>
+                                            <div class="text-muted small">
+                                                Claim #@activity.ClaimID - By @activity.User?.FullName
+                                            </div>
+                                        </div>
+                                        <span class="timeline-date text-muted small">
+                                            @activity.Timestamp.ToString("MMM dd, yyyy HH:mm")
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="text-center py-3">
+                            <i class="fas fa-info-circle fa-2x text-muted mb-2"></i>
+                            <p class="text-muted mb-0">No recent activity to display</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .border-left-primary {
+        border-left: 4px solid #4e73df !important;
+    }
+
+    .border-left-success {
+        border-left: 4px solid #1cc88a !important;
+    }
+
+    .border-left-info {
+        border-left: 4px solid #36b9cc !important;
+    }
+
+    .border-left-warning {
+        border-left: 4px solid #f6c23e !important;
+    }
+
+    .bg-gradient-primary {
+        background: linear-gradient(45deg, #4e73df, #224abe);
+    }
+
+    .timeline {
+        position: relative;
+        padding-left: 30px;
+    }
+
+    .timeline-item {
+        position: relative;
+        padding-bottom: 10px;
+    }
+
+        .timeline-item:not(:last-child):before {
+            content: '';
+            position: absolute;
+            left: -20px;
+            top: 0;
+            bottom: -10px;
+            width: 2px;
+            background-color: #e9ecef;
+        }
+
+    .timeline-marker {
+        position: absolute;
+        left: -30px;
+        top: 5px;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+    }
+
+    .timeline-content {
+        background: #f8f9fa;
+        padding: 10px 15px;
+        border-radius: 6px;
+    }
+
+    .timeline-date {
+        color: #6c757d;
+        font-size: 0.875rem;
+    }
+
+    .text-xs {
+        font-size: 0.7rem;
+    }
+
+    .welcome-section {
+        box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+    }
+</style>
+
+@functions {
+    public string GetActivityColor(string action)
+    {
+        return action.ToLower() switch
+        {
+            var a when a.Contains("approved") => "success",
+            var a when a.Contains("rejected") => "danger",
+            var a when a.Contains("revision") => "warning",
+            var a when a.Contains("verified") => "info",
+            var a when a.Contains("submitted") => "primary",
+            _ => "secondary"
+        };
+    }
+}

@@ -1,0 +1,348 @@
+@model ContractMonthlyClaimSystem.Models.ViewModels.ManagerStatistics
+
+@{
+    ViewData["Title"] = "Statistics & Analytics";
+    Layout = "_ManagerLayout";
+}
+
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-4 border-bottom">
+    <h1 class="h2">Statistics & Analytics</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <div class="btn-group me-2">
+            <a href="@Url.Action("ExportReports")" class="btn btn-sm btn-outline-primary">
+                <i class="fas fa-download me-1"></i>Export Data
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Date Range Info -->
+<div class="alert alert-info mb-4">
+    <i class="fas fa-info-circle me-2"></i>
+    Showing statistics from <strong>@Model.StartDate.ToString("dd MMM yyyy")</strong> to 
+    <strong>@Model.EndDate.ToString("dd MMM yyyy")</strong>
+</div>
+
+<!-- Key Metrics -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card manager-card border-start border-primary border-4">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs fw-bold text-primary text-uppercase mb-1">Total Claims</div>
+                        <div class="h5 mb-0 fw-bold text-gray-800">@Model.TotalClaims</div>
+                        <div class="mt-2 text-xs text-muted">All claims submitted</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-file-invoice fa-2x text-primary"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card manager-card border-start border-success border-4">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs fw-bold text-success text-uppercase mb-1">Approved Claims</div>
+                        <div class="h5 mb-0 fw-bold text-gray-800">@Model.ApprovedClaims</div>
+                        <div class="mt-2 text-xs text-muted">
+                            @((Model.TotalClaims > 0 ? (decimal)Model.ApprovedClaims / Model.TotalClaims * 100 : 0).ToString("F1"))% approval rate
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-check-circle fa-2x text-success"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card manager-card border-start border-warning border-4">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs fw-bold text-warning text-uppercase mb-1">Pending Claims</div>
+                        <div class="h5 mb-0 fw-bold text-gray-800">@Model.PendingClaims</div>
+                        <div class="mt-2 text-xs text-muted">Awaiting processing</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-clock fa-2x text-warning"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card manager-card border-start border-danger border-4">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs fw-bold text-danger text-uppercase mb-1">Total Amount</div>
+                        <div class="h5 mb-0 fw-bold text-gray-800">@Model.TotalAmount.ToString("C")</div>
+                        <div class="mt-2 text-xs text-muted">Approved claims value</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-dollar-sign fa-2x text-danger"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Department Statistics -->
+    <div class="col-lg-6 mb-4">
+        <div class="card manager-card">
+            <div class="card-header bg-white">
+                <h5 class="card-title mb-0"><i class="fas fa-building me-2 text-primary"></i>Department Performance</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Department</th>
+                                <th>Total Claims</th>
+                                <th>Approved</th>
+                                <th>Amount</th>
+                                <th>Rate</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var dept in Model.DepartmentStats)
+                            {
+                                <tr>
+                                    <td class="fw-bold">@dept.Department</td>
+                                    <td>@dept.TotalClaims</td>
+                                    <td>@dept.ApprovedClaims</td>
+                                    <td class="text-success">@dept.TotalAmount.ToString("C")</td>
+                                    <td>
+                                        <div class="progress" style="height: 8px;">
+                                            <div class="progress-bar bg-success" style="width: @dept.ApprovalRate%"></div>
+                                        </div>
+                                        <small class="text-muted">@dept.ApprovalRate.ToString("F1")%</small>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Lecturers -->
+    <div class="col-lg-6 mb-4">
+        <div class="card manager-card">
+            <div class="card-header bg-white">
+                <h5 class="card-title mb-0"><i class="fas fa-users me-2 text-success"></i>Top Performing Lecturers</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Lecturer</th>
+                                <th>Department</th>
+                                <th>Claims</th>
+                                <th>Amount</th>
+                                <th>Rate</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var lecturer in Model.LecturerStats)
+                            {
+                                <tr>
+                                    <td class="fw-bold">@lecturer.LecturerName</td>
+                                    <td>@lecturer.Department</td>
+                                    <td>@lecturer.TotalClaims</td>
+                                    <td class="text-success">@lecturer.TotalAmount.ToString("C")</td>
+                                    <td>
+                                        <span class="badge bg-@(lecturer.ApprovalRate >= 80 ? "success" : lecturer.ApprovalRate >= 60 ? "warning" : "danger")">
+                                            @lecturer.ApprovalRate.ToString("F1")%
+                                        </span>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Monthly Breakdown -->
+<div class="row">
+    <div class="col-12">
+        <div class="card manager-card">
+            <div class="card-header bg-white">
+                <h5 class="card-title mb-0"><i class="fas fa-chart-line me-2 text-info"></i>Monthly Claims Breakdown</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Month</th>
+                                <th>Submitted</th>
+                                <th>Approved</th>
+                                <th>Amount</th>
+                                <th>Approval Rate</th>
+                                <th>Trend</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var month in Model.MonthlyBreakdown)
+                            {
+                                <tr>
+                                    <td class="fw-bold">@month.Month</td>
+                                    <td>@month.Submitted</td>
+                                    <td>
+                                        <span class="badge bg-success">@month.Approved</span>
+                                    </td>
+                                    <td class="text-success fw-bold">@month.Amount.ToString("C")</td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="progress flex-grow-1 me-2" style="height: 6px;">
+                                                <div class="progress-bar bg-@(month.ApprovalRate >= 80 ? "success" : month.ApprovalRate >= 60 ? "warning" : "danger")" 
+                                                     style="width: @month.ApprovalRate%"></div>
+                                            </div>
+                                            <small>@month.ApprovalRate.ToString("F1")%</small>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        @{
+                                            var currentIndex = Model.MonthlyBreakdown.IndexOf(month);
+                                            if (currentIndex > 0)
+                                            {
+                                                var prevMonth = Model.MonthlyBreakdown[currentIndex - 1];
+                                                var trend = month.Amount - prevMonth.Amount;
+                                                if (trend > 0)
+                                                {
+                                                    <span class="badge bg-success trend-up">
+                                                        <i class="fas fa-arrow-up me-1"></i>@trend.ToString("C")
+                                                    </span>
+                                                }
+                                                else if (trend < 0)
+                                                {
+                                                    <span class="badge bg-danger trend-down">
+                                                        <i class="fas fa-arrow-down me-1"></i>@Math.Abs(trend).ToString("C")
+                                                    </span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-secondary">No Change</span>
+                                                }
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-secondary">Baseline</span>
+                                            }
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Section -->
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card manager-card">
+            <div class="card-header bg-white">
+                <h5 class="card-title mb-0"><i class="fas fa-chart-pie me-2 text-warning"></i>Claims Status Distribution</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="statusChart" height="250"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card manager-card">
+            <div class="card-header bg-white">
+                <h5 class="card-title mb-0"><i class="fas fa-chart-bar me-2 text-info"></i>Monthly Claims Trend</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="monthlyTrendChart" height="250"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        $(document).ready(function() {
+            // Status Distribution Chart
+            const statusCtx = document.getElementById('statusChart').getContext('2d');
+            const statusChart = new Chart(statusCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Approved', 'Pending', 'Rejected', 'Under Review'],
+                    datasets: [{
+                        data: [@Model.ApprovedClaims, @Model.PendingClaims, @Model.RejectedClaims, @(Model.TotalClaims - Model.ApprovedClaims - Model.PendingClaims - Model.RejectedClaims)],
+                        backgroundColor: ['#28a745', '#ffc107', '#dc3545', '#17a2b8'],
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+
+            // Monthly Trend Chart
+            const trendCtx = document.getElementById('monthlyTrendChart').getContext('2d');
+            const trendChart = new Chart(trendCtx, {
+                type: 'line',
+                data: {
+                    labels: @Html.Raw(Json.Serialize(Model.MonthlyBreakdown.Select(m => m.Month))),
+                    datasets: [
+                        {
+                            label: 'Submitted Claims',
+                            data: @Html.Raw(Json.Serialize(Model.MonthlyBreakdown.Select(m => m.Submitted))),
+                            borderColor: '#007bff',
+                            backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        },
+                        {
+                            label: 'Approved Claims',
+                            data: @Html.Raw(Json.Serialize(Model.MonthlyBreakdown.Select(m => m.Approved))),
+                            borderColor: '#28a745',
+                            backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+}
