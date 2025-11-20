@@ -1,4 +1,4 @@
-@model Claim
+@model ContractMonthlyClaimSystem.Models.Claim
 
 @{
     ViewData["Title"] = "Submit New Claim";
@@ -13,6 +13,31 @@
     </div>
 </div>
 
+<!-- Display Messages -->
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="fas fa-check-circle me-2"></i>@TempData["SuccessMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-circle me-2"></i>@TempData["ErrorMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (TempData["WarningMessage"] != null)
+{
+    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-triangle me-2"></i>@TempData["WarningMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
 <div class="row">
     <div class="col-lg-8">
         <div class="card dashboard-card">
@@ -21,15 +46,17 @@
             </div>
             <div class="card-body">
                 <form asp-action="SubmitClaim" method="post" enctype="multipart/form-data" id="claimForm">
+                    @Html.AntiForgeryToken()
+
                     <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
-                    
+
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <label asp-for="HoursWorked" class="form-label">Hours Worked</label>
-                            <input asp-for="HoursWorked" class="form-control" type="number" step="0.1" min="0" max="200" 
-                                   oninput="calculateAmount()" />
+                            <label asp-for="HoursWorked" class="form-label">Hours Worked *</label>
+                            <input asp-for="HoursWorked" class="form-control" type="number" step="0.1" min="0.1" max="200"
+                                   oninput="calculateAmount()" required />
                             <span asp-validation-for="HoursWorked" class="text-danger"></span>
-                            <div class="form-text">Enter total hours worked for this claim period</div>
+                            <div class="form-text">Enter total hours worked for this claim period (0.1 - 200)</div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Hourly Rate</label>
@@ -46,33 +73,36 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Submission Date</label>
-                            <input type="text" class="form-control" value="@DateTime.Now.ToString("dd MMMM yyyy")" readonly />
+                            <input type="text" class="form-control" value="@DateTime.Now.ToString("dd MMMM yyyy HH:mm")" readonly />
+                            <input type="hidden" asp-for="SubmissionDate" value="@DateTime.Now" />
                         </div>
                     </div>
 
                     <div class="mb-3">
                         <label asp-for="AdditionalNotes" class="form-label">Additional Notes</label>
-                        <textarea asp-for="AdditionalNotes" class="form-control" rows="4" 
-                                  placeholder="Enter any additional information about this claim..."></textarea>
+                        <textarea asp-for="AdditionalNotes" class="form-control" rows="4"
+                                  placeholder="Enter any additional information about this claim (e.g., specific tasks performed, dates, etc.)..."></textarea>
                         <span asp-validation-for="AdditionalNotes" class="text-danger"></span>
-                        <div class="form-text">Optional: Add details about the work performed</div>
+                        <div class="form-text">Optional: Add details about the work performed to help with verification</div>
                     </div>
 
                     <div class="mb-4">
                         <label class="form-label">Supporting Document</label>
-                        <input type="file" name="supportingDocument" class="form-control" 
-                               accept=".pdf,.docx,.xlsx,.jpg,.jpeg,.png" />
+                        <input type="file" name="supportingDocument" class="form-control"
+                               accept=".pdf,.docx,.xlsx,.jpg,.jpeg,.png"
+                               id="fileInput" />
                         <div class="form-text">
                             <i class="fas fa-info-circle me-1"></i>
                             Allowed file types: PDF, DOCX, XLSX, JPG, PNG. Maximum file size: 5MB.
                         </div>
+                        <div id="fileFeedback" class="mt-2"></div>
                     </div>
 
                     <div class="d-grid gap-2 d-md-flex justify-content-md-end">
                         <a href="@Url.Action("Dashboard")" class="btn btn-outline-secondary me-md-2">
                             <i class="fas fa-times me-1"></i>Cancel
                         </a>
-                        <button type="submit" class="btn btn-success">
+                        <button type="submit" class="btn btn-success" id="submitBtn">
                             <i class="fas fa-paper-plane me-1"></i>Submit Claim
                         </button>
                     </div>
@@ -80,11 +110,11 @@
             </div>
         </div>
     </div>
-    
+
     <div class="col-lg-4">
         <div class="card dashboard-card">
             <div class="card-header bg-white">
-                <h5 class="card-title mb-0"><i class="fas fa-lightbulb me-2"></i>Tips</h5>
+                <h5 class="card-title mb-0"><i class="fas fa-lightbulb me-2"></i>Tips & Guidelines</h5>
             </div>
             <div class="card-body">
                 <div class="alert alert-info">
@@ -96,14 +126,44 @@
                         <li>Verify your hourly rate is correct</li>
                     </ul>
                 </div>
-                
+
                 <div class="alert alert-warning">
                     <h6><i class="fas fa-exclamation-triangle me-2"></i>Important:</h6>
                     <ul class="mb-0 ps-3">
                         <li>Claims typically processed within 5-7 days</li>
                         <li>You can track status in real-time</li>
                         <li>Upload additional documents later if needed</li>
+                        <li>Keep records of your work for verification</li>
                     </ul>
+                </div>
+
+                <div class="alert alert-success">
+                    <h6><i class="fas fa-clock me-2"></i>Current Status:</h6>
+                    <div class="d-flex align-items-center">
+                        <span class="badge bg-warning me-2">Pending</span>
+                        <small>New claims start as Pending</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="card dashboard-card mt-3">
+            <div class="card-header bg-white">
+                <h5 class="card-title mb-0"><i class="fas fa-chart-bar me-2"></i>Your Claim Stats</h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6">
+                        <div class="border-end">
+                            <div class="h4 mb-1 text-primary" id="pendingCount">0</div>
+                            <small class="text-muted">Pending</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="h4 mb-1 text-success" id="approvedCount">0</div>
+                        <small class="text-muted">Approved</small>
+                    </div>
                 </div>
             </div>
         </div>
@@ -112,19 +172,128 @@
 
 @section Scripts {
     <script>
+        // Calculate amount based on hours and hourly rate
         function calculateAmount() {
             var hours = parseFloat($('#HoursWorked').val()) || 0;
             var hourlyRate = @(ViewBag.HourlyRate ?? 0);
             var amount = hours * hourlyRate;
-            $('#calculatedAmount').val('$' + amount.toFixed(2));
+
+            // Format as currency
+            var formattedAmount = new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD'
+            }).format(amount);
+
+            $('#calculatedAmount').val(formattedAmount);
+
+            // Validate hours
+            validateHours(hours);
+        }
+
+        // Validate hours input
+        function validateHours(hours) {
+            var hoursInput = $('#HoursWorked');
+            var feedback = hoursInput.next('.text-danger');
+
+            if (hours < 0.1) {
+                if (feedback.length === 0) {
+                    hoursInput.after('<span class="text-danger">Minimum 0.1 hours required</span>');
+                }
+                $('#submitBtn').prop('disabled', true);
+            } else if (hours > 200) {
+                if (feedback.length === 0) {
+                    hoursInput.after('<span class="text-danger">Maximum 200 hours allowed</span>');
+                }
+                $('#submitBtn').prop('disabled', true);
+            } else {
+                $('.text-danger').remove();
+                $('#submitBtn').prop('disabled', false);
+            }
+        }
+
+        // File input validation
+        function validateFile(input) {
+            const file = input.files[0];
+            const feedback = $('#fileFeedback');
+            const submitBtn = $('#submitBtn');
+
+            if (!file) {
+                feedback.html('');
+                return;
+            }
+
+            // Check file size (5MB limit)
+            const maxSize = 5 * 1024 * 1024;
+            if (file.size > maxSize) {
+                feedback.html('<div class="text-danger"><i class="fas fa-exclamation-triangle me-1"></i>File size exceeds 5MB limit</div>');
+                submitBtn.prop('disabled', true);
+                return;
+            }
+
+            // Check file type
+            const allowedTypes = ['.pdf', '.docx', '.xlsx', '.jpg', '.jpeg', '.png'];
+            const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
+
+            if (!allowedTypes.includes(fileExtension)) {
+                feedback.html('<div class="text-danger"><i class="fas fa-exclamation-triangle me-1"></i>File type not allowed</div>');
+                submitBtn.prop('disabled', true);
+                return;
+            }
+
+            // Valid file
+            feedback.html('<div class="text-success"><i class="fas fa-check-circle me-1"></i>File accepted</div>');
+            submitBtn.prop('disabled', false);
+        }
+
+        // Load claim statistics
+        function loadClaimStats() {
+            $.ajax({
+                url: '@Url.Action("GetClaimStatistics", "Lecturer")',
+                type: 'GET',
+                success: function(data) {
+                    if (data.success) {
+                        $('#pendingCount').text(data.pendingCount);
+                        $('#approvedCount').text(data.approvedCount);
+                    }
+                },
+                error: function() {
+                    console.log('Error loading claim statistics');
+                }
+            });
         }
 
         $(document).ready(function() {
             // Initial calculation
             calculateAmount();
-            
-            // Real-time calculation
+
+            // Real-time calculation and validation
             $('#HoursWorked').on('input', calculateAmount);
+
+            // File validation
+            $('#fileInput').on('change', function() {
+                validateFile(this);
+            });
+
+            // Form submission handling
+            $('#claimForm').on('submit', function() {
+                var hours = parseFloat($('#HoursWorked').val()) || 0;
+                if (hours < 0.1 || hours > 200) {
+                    alert('Please enter valid hours between 0.1 and 200.');
+                    return false;
+                }
+
+                // Show loading state
+                $('#submitBtn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i>Submitting...');
+                return true;
+            });
+
+            // Load statistics
+            loadClaimStats();
+
+            // Auto-dismiss alerts after 5 seconds
+            setTimeout(function() {
+                $('.alert').alert('close');
+            }, 5000);
         });
     </script>
 }

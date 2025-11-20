@@ -11,8 +11,26 @@
     </div>
 </div>
 
+<!-- Display Messages -->
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="fas fa-check-circle me-2"></i>@TempData["SuccessMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-circle me-2"></i>@TempData["ErrorMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
 <div class="row">
     <div class="col-lg-8">
+        <!-- Upload Form -->
         <div class="card dashboard-card">
             <div class="card-header bg-white">
                 <h5 class="card-title mb-0"><i class="fas fa-upload me-2"></i>Upload Supporting Documents</h5>
@@ -20,36 +38,62 @@
             <div class="card-body">
                 <form id="uploadForm" enctype="multipart/form-data">
                     <div class="mb-3">
-                        <label for="claimSelect" class="form-label">Select Claim</label>
+                        <label for="claimSelect" class="form-label">Select Claim *</label>
                         <select class="form-select" id="claimSelect" required>
                             <option value="">-- Select a claim --</option>
                             @if (ViewBag.Claims != null)
                             {
                                 foreach (var claim in ViewBag.Claims)
                                 {
-                                    <option value="@claim.ClaimID" 
-                                            data-selected="@(ViewBag.SelectedClaimId == claim.ClaimID ? "true" : "false")">
-                                        Claim #@claim.ClaimID - @claim.SubmissionDate.ToString("dd/MM/yyyy") - @claim.Amount.ToString("C")
-                                    </option>
+                                    if (ViewBag.SelectedClaimId != null && ViewBag.SelectedClaimId == claim.ClaimID)
+                                    {
+                                        <option value="@claim.ClaimID" selected>
+                                            Claim #@claim.ClaimID - @claim.SubmissionDate.ToString("dd/MM/yyyy") - @claim.Amount.ToString("C") - Status: @claim.Status
+                                        </option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@claim.ClaimID">
+                                            Claim #@claim.ClaimID - @claim.SubmissionDate.ToString("dd/MM/yyyy") - @claim.Amount.ToString("C") - Status: @claim.Status
+                                        </option>
+                                    }
                                 }
                             }
                         </select>
-                        <div class="form-text">Select the claim you want to attach documents to</div>
+                        <div class="form-text">Only claims with status: Pending, Under Review, or Revision Requested can have documents uploaded</div>
                     </div>
 
                     <div class="mb-3">
-                        <label for="fileInput" class="form-label">Choose Document</label>
+                        <label for="fileInput" class="form-label">Choose Document *</label>
                         <input type="file" class="form-control" id="fileInput" accept=".pdf,.docx,.xlsx,.jpg,.jpeg,.png" required />
                         <div class="form-text">
                             <i class="fas fa-info-circle me-1"></i>
                             Allowed file types: PDF, DOCX, XLSX, JPG, PNG. Maximum file size: 5MB.
                         </div>
+                        <div id="filePreview" class="mt-2 d-none">
+                            <div class="card">
+                                <div class="card-body py-2">
+                                    <div class="d-flex align-items-center">
+                                        <i class="fas fa-file me-3 text-primary fa-lg"></i>
+                                        <div class="flex-grow-1">
+                                            <div id="fileName" class="fw-bold"></div>
+                                            <div id="fileSize" class="text-muted small"></div>
+                                        </div>
+                                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearFile()">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="mb-3">
-                        <div class="progress d-none" id="uploadProgress">
-                            <div class="progress-bar progress-bar-striped progress-bar-animated" 
-                                 role="progressbar" style="width: 0%"></div>
+                        <div class="progress d-none" id="uploadProgress" style="height: 20px;">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated"
+                                 role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+                                <span class="progress-text">0%</span>
+                            </div>
                         </div>
                     </div>
 
@@ -66,18 +110,49 @@
 
         <!-- Uploaded Documents -->
         <div class="card dashboard-card mt-4">
-            <div class="card-header bg-white">
-                <h5 class="card-title mb-0"><i class="fas fa-files me-2"></i>Recently Uploaded Documents</h5>
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0"><i class="fas fa-files me-2"></i>Uploaded Documents</h5>
+                <div class="text-muted">
+                    <small id="documentCount">Select a claim to view documents</small>
+                </div>
             </div>
             <div class="card-body">
                 <div id="documentsList">
-                    <p class="text-muted">Select a claim to view uploaded documents...</p>
+                    <div class="text-center py-4">
+                        <i class="fas fa-folder-open fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">Select a claim to view uploaded documents...</p>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
     <div class="col-lg-4">
+        <!-- Quick Stats -->
+        <div class="card dashboard-card mb-4">
+            <div class="card-header bg-white">
+                <h5 class="card-title mb-0"><i class="fas fa-chart-bar me-2"></i>Upload Statistics</h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6 mb-3">
+                        <div class="border-end">
+                            <div class="h4 mb-1 text-primary" id="totalDocuments">0</div>
+                            <small class="text-muted">Total Documents</small>
+                        </div>
+                    </div>
+                    <div class="col-6 mb-3">
+                        <div class="h4 mb-1 text-success" id="totalClaims">0</div>
+                        <small class="text-muted">Claims with Docs</small>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <small class="text-muted">Last upload: <span id="lastUpload">Never</span></small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Document Guidelines -->
         <div class="card dashboard-card">
             <div class="card-header bg-white">
                 <h5 class="card-title mb-0"><i class="fas fa-question-circle me-2"></i>Document Guidelines</h5>
@@ -85,7 +160,7 @@
             <div class="card-body">
                 <div class="alert alert-info">
                     <h6><i class="fas fa-info-circle me-2"></i>Supported Documents:</h6>
-                    <ul class="mb-0 ps-3">
+                    <ul class="mb-0 ps-3 small">
                         <li>Timesheets (PDF, Excel)</li>
                         <li>Approval emails (PDF)</li>
                         <li>Work completion certificates</li>
@@ -93,10 +168,10 @@
                         <li>Other supporting evidence</li>
                     </ul>
                 </div>
-                
+
                 <div class="alert alert-warning">
                     <h6><i class="fas fa-exclamation-triangle me-2"></i>Requirements:</h6>
-                    <ul class="mb-0 ps-3">
+                    <ul class="mb-0 ps-3 small">
                         <li>Clear and readable documents</li>
                         <li>File size under 5MB each</li>
                         <li>Relevant to the claim</li>
@@ -106,7 +181,7 @@
 
                 <div class="alert alert-success">
                     <h6><i class="fas fa-lightbulb me-2"></i>Tips:</h6>
-                    <ul class="mb-0 ps-3">
+                    <ul class="mb-0 ps-3 small">
                         <li>Upload multiple documents if needed</li>
                         <li>Use descriptive file names</li>
                         <li>Keep documents organized by claim</li>
@@ -121,12 +196,30 @@
 @section Scripts {
     <script>
         $(document).ready(function() {
-            // Set selected claim if provided
-            @if (ViewBag.SelectedClaimId != null)
-            {
-                <text>$('#claimSelect').val('@ViewBag.SelectedClaimId');</text>
-                <text>loadDocuments('@ViewBag.SelectedClaimId');</text>
+            // Initialize tooltips
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+
+            // Load statistics
+            loadUploadStatistics();
+
+            // Set selected claim if provided and load documents
+            var selectedClaimId = $('#claimSelect').val();
+            if (selectedClaimId) {
+                loadDocuments(selectedClaimId);
             }
+
+            // File input change handler
+            $('#fileInput').change(function() {
+                var file = this.files[0];
+                if (file) {
+                    showFilePreview(file);
+                } else {
+                    hideFilePreview();
+                }
+            });
 
             // Load documents when claim selection changes
             $('#claimSelect').change(function() {
@@ -134,22 +227,22 @@
                 if (claimId) {
                     loadDocuments(claimId);
                 } else {
-                    $('#documentsList').html('<p class="text-muted">Select a claim to view uploaded documents...</p>');
+                    showNoDocumentsMessage();
                 }
             });
 
             // Handle form submission
             $('#uploadForm').submit(function(e) {
                 e.preventDefault();
-                
+
                 var claimId = $('#claimSelect').val();
                 var fileInput = $('#fileInput')[0];
-                
+
                 if (!claimId) {
                     showResult('Please select a claim first.', 'danger');
                     return;
                 }
-                
+
                 if (!fileInput.files.length) {
                     showResult('Please select a file to upload.', 'danger');
                     return;
@@ -159,13 +252,40 @@
             });
         });
 
+        function showFilePreview(file) {
+            var fileSize = formatFileSize(file.size);
+            $('#fileName').text(file.name);
+            $('#fileSize').text(fileSize);
+            $('#filePreview').removeClass('d-none');
+        }
+
+        function hideFilePreview() {
+            $('#filePreview').addClass('d-none');
+            $('#fileName').text('');
+            $('#fileSize').text('');
+        }
+
+        function clearFile() {
+            $('#fileInput').val('');
+            hideFilePreview();
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
         function uploadDocument(claimId, file) {
             var formData = new FormData();
             formData.append('claimId', claimId);
             formData.append('file', file);
 
+            // Show progress and disable form
             $('#uploadProgress').removeClass('d-none');
-            $('#uploadButton').prop('disabled', true);
+            $('#uploadButton').prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i>Uploading...');
 
             $.ajax({
                 url: '@Url.Action("UploadDocuments", "Lecturer")',
@@ -178,7 +298,9 @@
                     xhr.upload.addEventListener('progress', function(evt) {
                         if (evt.lengthComputable) {
                             var percentComplete = (evt.loaded / evt.total) * 100;
-                            $('#uploadProgress .progress-bar').css('width', percentComplete + '%');
+                            $('#uploadProgress .progress-bar').css('width', percentComplete + '%')
+                                .attr('aria-valuenow', percentComplete)
+                                .find('.progress-text').text(Math.round(percentComplete) + '%');
                         }
                     }, false);
                     return xhr;
@@ -187,46 +309,92 @@
                     if (response.success) {
                         showResult(response.message, 'success');
                         $('#fileInput').val('');
+                        hideFilePreview();
                         loadDocuments(claimId);
+                        loadUploadStatistics();
                     } else {
                         showResult(response.message, 'danger');
                     }
                 },
-                error: function() {
-                    showResult('An error occurred during upload.', 'danger');
+                error: function(xhr, status, error) {
+                    showResult('An error occurred during upload: ' + error, 'danger');
                 },
                 complete: function() {
                     $('#uploadProgress').addClass('d-none');
-                    $('#uploadProgress .progress-bar').css('width', '0%');
-                    $('#uploadButton').prop('disabled', false);
+                    $('#uploadProgress .progress-bar').css('width', '0%')
+                        .attr('aria-valuenow', 0)
+                        .find('.progress-text').text('0%');
+                    $('#uploadButton').prop('disabled', false).html('<i class="fas fa-upload me-1"></i>Upload Document');
                 }
             });
         }
 
         function loadDocuments(claimId) {
+            $('#documentsList').html(`
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Loading documents...</p>
+                </div>
+            `);
+
             $.get('@Url.Action("GetClaimDocuments", "Lecturer")', { claimId: claimId })
                 .done(function(data) {
                     $('#documentsList').html(data);
+                    // Re-initialize tooltips for dynamically loaded content
+                    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                        return new bootstrap.Tooltip(tooltipTriggerEl);
+                    });
                 })
                 .fail(function() {
-                    $('#documentsList').html('<p class="text-danger">Error loading documents.</p>');
+                    $('#documentsList').html('<div class="alert alert-danger"><i class="fas fa-exclamation-circle me-2"></i>Error loading documents.</div>');
                 });
+        }
+
+        function loadUploadStatistics() {
+            $.get('@Url.Action("GetUploadStatistics", "Lecturer")')
+                .done(function(data) {
+                    if (data.success) {
+                        $('#totalDocuments').text(data.totalDocuments);
+                        $('#totalClaims').text(data.claimsWithDocuments);
+                        $('#lastUpload').text(data.lastUpload || 'Never');
+                    }
+                })
+                .fail(function() {
+                    console.log('Error loading upload statistics');
+                });
+        }
+
+        function showNoDocumentsMessage() {
+            $('#documentsList').html(`
+                <div class="text-center py-4">
+                    <i class="fas fa-folder-open fa-3x text-muted mb-3"></i>
+                    <p class="text-muted">Select a claim to view uploaded documents...</p>
+                </div>
+            `);
         }
 
         function showResult(message, type) {
             var alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
             var icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
-            
+
             $('#uploadResult').html(
                 '<div class="alert ' + alertClass + ' alert-dismissible fade show">' +
                 '<i class="fas ' + icon + ' me-2"></i>' + message +
                 '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>' +
                 '</div>'
             );
+
+            // Auto-dismiss after 5 seconds
+            setTimeout(function() {
+                $('#uploadResult .alert').alert('close');
+            }, 5000);
         }
 
         function deleteDocument(documentId) {
-            if (confirm('Are you sure you want to delete this document?')) {
+            if (confirm('Are you sure you want to delete this document? This action cannot be undone.')) {
                 $.post('@Url.Action("DeleteDocument", "Lecturer")', { documentId: documentId })
                     .done(function(response) {
                         if (response.success) {
@@ -236,6 +404,7 @@
                             if (currentClaimId) {
                                 loadDocuments(currentClaimId);
                             }
+                            loadUploadStatistics();
                         } else {
                             showResult(response.message, 'danger');
                         }

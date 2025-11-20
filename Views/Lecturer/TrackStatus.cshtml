@@ -1,4 +1,4 @@
-@model List<Claim>
+@model List<ContractMonthlyClaimSystem.Models.Claim>
 @{
     ViewData["Title"] = "Track Claim Status";
 }
@@ -12,16 +12,50 @@
     </div>
 </div>
 
+<!-- Display Messages -->
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="fas fa-check-circle me-2"></i>@TempData["SuccessMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-circle me-2"></i>@TempData["ErrorMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
 <!-- Status Summary Cards -->
 <div class="row mb-4">
-    <div class="col-md-4 mb-3">
+    <div class="col-md-3 mb-3">
+        <div class="card dashboard-card border-start border-primary border-4">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h6 class="card-title text-primary">Total Claims</h6>
+                        <h3 class="mb-0">@(Model?.Count ?? 0)</h3>
+                        <small class="text-muted">All submissions</small>
+                    </div>
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-file-invoice fa-2x text-primary"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3 mb-3">
         <div class="card dashboard-card border-start border-warning border-4">
             <div class="card-body">
                 <div class="d-flex align-items-center">
                     <div class="flex-grow-1">
                         <h6 class="card-title text-warning">Pending Review</h6>
                         <h3 class="mb-0">@(ViewBag.PendingClaims?.Count ?? 0)</h3>
-                        <small class="text-muted">Awaiting coordinator review</small>
+                        <small class="text-muted">Awaiting review</small>
                     </div>
                     <div class="flex-shrink-0">
                         <i class="fas fa-clock fa-2x text-warning"></i>
@@ -31,7 +65,7 @@
         </div>
     </div>
 
-    <div class="col-md-4 mb-3">
+    <div class="col-md-3 mb-3">
         <div class="card dashboard-card border-start border-success border-4">
             <div class="card-body">
                 <div class="d-flex align-items-center">
@@ -48,19 +82,40 @@
         </div>
     </div>
 
-    <div class="col-md-4 mb-3">
+    <div class="col-md-3 mb-3">
         <div class="card dashboard-card border-start border-danger border-4">
             <div class="card-body">
                 <div class="d-flex align-items-center">
                     <div class="flex-grow-1">
                         <h6 class="card-title text-danger">Rejected</h6>
                         <h3 class="mb-0">@(ViewBag.RejectedClaims?.Count ?? 0)</h3>
-                        <small class="text-muted">Requires resubmission</small>
+                        <small class="text-muted">Requires attention</small>
                     </div>
                     <div class="flex-shrink-0">
                         <i class="fas fa-times-circle fa-2x text-danger"></i>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Search and Filter Section -->
+<div class="row mb-3">
+    <div class="col-md-6">
+        <div class="input-group">
+            <span class="input-group-text"><i class="fas fa-search"></i></span>
+            <input type="text" class="form-control" placeholder="Search claims..." id="searchInput">
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="d-flex justify-content-end">
+            <div class="btn-group">
+                <button type="button" class="btn btn-sm btn-outline-primary active" data-filter="all">All</button>
+                <button type="button" class="btn btn-sm btn-outline-warning" data-filter="pending">Pending</button>
+                <button type="button" class="btn btn-sm btn-outline-info" data-filter="under review">Under Review</button>
+                <button type="button" class="btn btn-sm btn-outline-success" data-filter="approved">Approved</button>
+                <button type="button" class="btn btn-sm btn-outline-danger" data-filter="rejected">Rejected</button>
             </div>
         </div>
     </div>
@@ -72,15 +127,12 @@
         <div class="card dashboard-card">
             <div class="card-header bg-white d-flex justify-content-between align-items-center">
                 <h5 class="card-title mb-0"><i class="fas fa-tasks me-2"></i>All Claims Status</h5>
-                <div class="btn-group">
-                    <button type="button" class="btn btn-sm btn-outline-primary active" data-filter="all">All</button>
-                    <button type="button" class="btn btn-sm btn-outline-warning" data-filter="pending">Pending</button>
-                    <button type="button" class="btn btn-sm btn-outline-success" data-filter="approved">Approved</button>
-                    <button type="button" class="btn btn-sm btn-outline-danger" data-filter="rejected">Rejected</button>
+                <div class="text-muted">
+                    <small>Last updated: @DateTime.Now.ToString("dd MMM yyyy HH:mm")</small>
                 </div>
             </div>
             <div class="card-body">
-                @if (Model.Any())
+                @if (Model != null && Model.Any())
                 {
                     <div class="table-responsive">
                         <table class="table table-hover" id="claimsTable">
@@ -109,11 +161,11 @@
                                         <td>
                                             <span class="status-badge badge @GetStatusBadgeClass(claim.Status) @GetStatusTextClass(claim.Status)">
                                                 @claim.Status
-                                                @if (claim.Status == "Pending")
+                                                @if (claim.Status == "Pending" || claim.Status == "Under Review")
                                                 {
                                                     <i class="fas fa-clock ms-1"></i>
                                                 }
-                                                else if (claim.Status == "Approved")
+                                                else if (claim.Status == "Approved" || claim.Status == "Coordinator Approved")
                                                 {
                                                     <i class="fas fa-check ms-1"></i>
                                                 }
@@ -126,15 +178,15 @@
                                         <td>
                                             @{
                                                 var lastUpdate = claim.AuditTrails?
-                                                    .OrderByDescending(a => a.Timestamp)
-                                                    .FirstOrDefault()?.Timestamp ?? claim.SubmissionDate;
+                                                .OrderByDescending(a => a.Timestamp)
+                                                .FirstOrDefault()?.Timestamp ?? claim.SubmissionDate;
                                             }
-                                            @lastUpdate.ToString("dd MMM yyyy HH:mm")
+                                            <small>@lastUpdate.ToString("dd MMM yyyy HH:mm")</small>
                                         </td>
                                         <td>
                                             @if (claim.SupportingDocuments?.Any() == true)
                                             {
-                                                <span class="badge bg-success">
+                                                <span class="badge bg-success" data-bs-toggle="tooltip" title="@claim.SupportingDocuments.Count document(s)">
                                                     <i class="fas fa-file me-1"></i>@claim.SupportingDocuments.Count
                                                 </span>
                                             }
@@ -144,21 +196,29 @@
                                             }
                                         </td>
                                         <td>
-                                            <div class="btn-group" role="group">
-                                                <button class="btn btn-sm btn-outline-primary view-timeline" 
+                                            <div class="btn-group btn-group-sm" role="group">
+                                                <button class="btn btn-outline-primary view-timeline"
                                                         data-claim-id="@claim.ClaimID"
                                                         data-bs-toggle="tooltip" title="View Timeline">
                                                     <i class="fas fa-history"></i>
                                                 </button>
-                                                <a href="@Url.Action("ClaimDetails", new { id = claim.ClaimID })" 
-                                                   class="btn btn-sm btn-outline-info" data-bs-toggle="tooltip" title="View Details">
+                                                <a href="@Url.Action("ClaimDetails", new { id = claim.ClaimID })"
+                                                   class="btn btn-outline-info" data-bs-toggle="tooltip" title="View Details">
                                                     <i class="fas fa-eye"></i>
                                                 </a>
                                                 @if (claim.Status == "Rejected")
                                                 {
-                                                    <a href="@Url.Action("SubmitClaim")" 
-                                                       class="btn btn-sm btn-outline-warning" data-bs-toggle="tooltip" title="Resubmit">
+                                                    <button class="btn btn-outline-warning resubmit-claim"
+                                                            data-claim-id="@claim.ClaimID"
+                                                            data-bs-toggle="tooltip" title="Resubmit Claim">
                                                         <i class="fas fa-redo"></i>
+                                                    </button>
+                                                }
+                                                @if (claim.Status == "Pending" || claim.Status == "Under Review")
+                                                {
+                                                    <a href="@Url.Action("UploadDocuments", new { claimId = claim.ClaimID })"
+                                                       class="btn btn-outline-success" data-bs-toggle="tooltip" title="Add Documents">
+                                                        <i class="fas fa-upload"></i>
                                                     </a>
                                                 }
                                             </div>
@@ -167,6 +227,13 @@
                                 }
                             </tbody>
                         </table>
+                    </div>
+
+                    <!-- No Results Message -->
+                    <div id="noResults" class="text-center py-5 d-none">
+                        <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                        <h4 class="text-muted">No Claims Found</h4>
+                        <p class="text-muted">Try adjusting your search or filter criteria.</p>
                     </div>
                 }
                 else
@@ -210,9 +277,31 @@
     </div>
 </div>
 
+<!-- Resubmit Confirmation Modal -->
+<div class="modal fade" id="resubmitModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Resubmit Claim</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to resubmit claim #<span id="resubmitClaimId"></span>?</p>
+                <p class="text-muted">This will create a new claim with the same details and reset the approval process.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-warning" id="confirmResubmit">Resubmit Claim</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <script>
         $(document).ready(function() {
+            let currentResubmitClaimId = null;
+
             // Initialize tooltips
             var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
             var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
@@ -227,14 +316,42 @@
                 $('[data-filter]').removeClass('active');
                 $(this).addClass('active');
 
-                // Show/hide rows
-                if (filter === 'all') {
-                    $('.claim-row').show();
-                } else {
-                    $('.claim-row').hide();
-                    $('.claim-row[data-status="' + filter + '"]').show();
-                }
+                filterClaims();
             });
+
+            // Search functionality
+            $('#searchInput').on('input', function() {
+                filterClaims();
+            });
+
+            function filterClaims() {
+                var filter = $('[data-filter].active').data('filter');
+                var searchText = $('#searchInput').val().toLowerCase();
+                var hasVisibleRows = false;
+
+                $('.claim-row').each(function() {
+                    var $row = $(this);
+                    var status = $row.data('status');
+                    var rowText = $row.text().toLowerCase();
+
+                    var matchesFilter = filter === 'all' || status === filter;
+                    var matchesSearch = searchText === '' || rowText.includes(searchText);
+
+                    if (matchesFilter && matchesSearch) {
+                        $row.show();
+                        hasVisibleRows = true;
+                    } else {
+                        $row.hide();
+                    }
+                });
+
+                // Show/hide no results message
+                if (hasVisibleRows) {
+                    $('#noResults').addClass('d-none');
+                } else {
+                    $('#noResults').removeClass('d-none');
+                }
+            }
 
             // Timeline modal
             $('.view-timeline').click(function() {
@@ -242,6 +359,39 @@
                 $('#timelineClaimId').text(claimId);
                 loadTimeline(claimId);
                 $('#timelineModal').modal('show');
+            });
+
+            // Resubmit claim functionality
+            $('.resubmit-claim').click(function() {
+                currentResubmitClaimId = $(this).data('claim-id');
+                $('#resubmitClaimId').text(currentResubmitClaimId);
+                $('#resubmitModal').modal('show');
+            });
+
+            $('#confirmResubmit').click(function() {
+                if (!currentResubmitClaimId) return;
+
+                var $btn = $(this);
+                $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i>Resubmitting...');
+
+                $.post('@Url.Action("ResubmitClaim", "Lecturer")', { claimId: currentResubmitClaimId })
+                    .done(function(response) {
+                        if (response.success) {
+                            $('#resubmitModal').modal('hide');
+                            showAlert('success', response.message);
+                            // Reload page after a short delay to show the new claim
+                            setTimeout(function() {
+                                window.location.reload();
+                            }, 2000);
+                        } else {
+                            showAlert('danger', response.message);
+                            $btn.prop('disabled', false).html('Resubmit Claim');
+                        }
+                    })
+                    .fail(function() {
+                        showAlert('danger', 'Error resubmitting claim. Please try again.');
+                        $btn.prop('disabled', false).html('Resubmit Claim');
+                    });
             });
 
             function loadTimeline(claimId) {
@@ -269,20 +419,29 @@
                     .fail(function() {
                         $('#timelineContent').html(`
                             <div class="alert alert-danger">
-                                <i class="fas fa-exclamation-circle me-2"></i>Error loading timeline.
+                                <i class="fas fa-exclamation-circle me-2"></i>Error loading timeline. Please try again.
                             </div>
                         `);
                     });
             }
 
             function displayTimeline(timeline) {
-                var html = '<div class="timeline">';
+                if (!timeline || timeline.length === 0) {
+                    $('#timelineContent').html(`
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>No timeline data available for this claim.
+                        </div>
+                    `);
+                    return;
+                }
 
+                var html = '<div class="timeline">';
                 timeline.forEach(function(item, index) {
                     var isLast = index === timeline.length - 1;
+                    var isCurrent = item.action.includes('Status:');
 
                     html += `
-                        <div class="timeline-item ${isLast ? 'current' : ''}">
+                        <div class="timeline-item ${isLast ? 'current' : ''} ${isCurrent ? 'current-status' : ''}">
                             <div class="timeline-marker">
                                 <i class="${item.icon}"></i>
                             </div>
@@ -298,10 +457,39 @@
                         </div>
                     `;
                 });
-
                 html += '</div>';
                 $('#timelineContent').html(html);
             }
+
+            function showAlert(type, message) {
+                var alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+                var icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
+
+                var alertHtml = `
+                    <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+                        <i class="fas ${icon} me-2"></i>${message}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                `;
+
+                // Remove existing alerts and add new one
+                $('.alert-dismissible').alert('close');
+                setTimeout(function() {
+                    $('.border-bottom').after(alertHtml);
+                }, 100);
+            }
+
+            // Auto-dismiss alerts after 5 seconds
+            setTimeout(function() {
+                $('.alert').alert('close');
+            }, 5000);
+
+            // Auto-refresh page every 2 minutes to get latest status
+            setInterval(function() {
+                console.log('Auto-refreshing claim status...');
+                // You can implement partial refresh here instead of full page reload
+                // For now, we'll just log it
+            }, 120000);
         });
     </script>
 }
@@ -340,11 +528,16 @@
         justify-content: center;
         color: white;
         font-size: 0.7rem;
+        z-index: 2;
     }
 
     .timeline-item.current .timeline-marker {
         background-color: #198754;
         animation: pulse 2s infinite;
+    }
+
+    .timeline-item.current-status .timeline-marker {
+        background-color: #ffc107;
     }
 
     .timeline-content {
@@ -359,16 +552,23 @@
         background: #f0fff4;
     }
 
+    .timeline-item.current-status .timeline-content {
+        border-left-color: #ffc107;
+        background: #fffbf0;
+    }
+
     .timeline-header {
         display: flex;
-        justify-content: between;
-        align-items: center;
+        justify-content: space-between;
+        align-items: flex-start;
         margin-bottom: 5px;
     }
 
     .timeline-date {
         color: #6c757d;
         font-size: 0.875rem;
+        white-space: nowrap;
+        margin-left: 10px;
     }
 
     .status-badge {
@@ -388,17 +588,28 @@
         color: #dc3545 !important;
     }
 
+    .text-info {
+        color: #0dcaf0 !important;
+    }
+
+    .btn-group-sm > .btn {
+        padding: 0.25rem 0.5rem;
+    }
+
     @@keyframes pulse {
         0% {
             transform: scale(1);
+            box-shadow: 0 0 0 0 rgba(25, 135, 84, 0.7);
         }
 
         50% {
-            transform: scale(1.1);
+            transform: scale(1.05);
+            box-shadow: 0 0 0 5px rgba(25, 135, 84, 0);
         }
 
         100% {
             transform: scale(1);
+            box-shadow: 0 0 0 0 rgba(25, 135, 84, 0);
         }
     }
 
@@ -417,6 +628,19 @@
         .timeline-content {
             padding: 10px;
         }
+
+        .timeline-header {
+            flex-direction: column;
+        }
+
+        .timeline-date {
+            margin-left: 0;
+            margin-top: 5px;
+        }
+
+        .btn-group {
+            flex-wrap: wrap;
+        }
     }
 </style>
 
@@ -424,36 +648,23 @@
 @functions {
     public string GetStatusBadgeClass(string status)
     {
-        return status switch
+        return status?.ToLower() switch
         {
-            "Pending" or "Under Review" => "bg-warning",
-            "Approved" => "bg-success",
-            "Rejected" => "bg-danger",
+            "pending" or "under review" or "revision requested" => "bg-warning",
+            "approved" or "coordinator approved" => "bg-success",
+            "rejected" => "bg-danger",
             _ => "bg-secondary"
         };
     }
 
     public string GetStatusTextClass(string status)
     {
-        return status switch
+        return status?.ToLower() switch
         {
-            "Pending" or "Under Review" => "text-warning",
-            "Approved" => "text-success",
-            "Rejected" => "text-danger",
+            "pending" or "under review" or "revision requested" => "text-warning",
+            "approved" or "coordinator approved" => "text-success",
+            "rejected" => "text-danger",
             _ => "text-secondary"
-        };
-    }
-
-    public string GetFileIcon(string fileName)
-    {
-        var extension = System.IO.Path.GetExtension(fileName).ToLower();
-        return extension switch
-        {
-            ".pdf" => "pdf",
-            ".docx" => "word",
-            ".xlsx" => "excel",
-            ".jpg" or ".jpeg" or ".png" => "image",
-            _ => "alt"
         };
     }
 }
