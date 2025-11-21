@@ -6,11 +6,11 @@ namespace ContractMonthlyClaimSystem.Models
 {
     public class CoordinatorReportViewModel
     {
-        public string ReportType { get; set; } = "Monthly";
-        public DateTime StartDate { get; set; } = DateTime.Now.AddDays(-30);
-        public DateTime EndDate { get; set; } = DateTime.Now;
-        public string Department { get; set; } = "All";
-        public List<Claim> Claims { get; set; } = new List<Claim>();
+        public string ReportType { get; set; }
+        public DateTime StartDate { get; set; }
+        public DateTime EndDate { get; set; }
+        public string Department { get; set; }
+        public List<Claim> Claims { get; set; }
         public decimal TotalAmount { get; set; }
         public int TotalClaims { get; set; }
         public int ApprovedClaims { get; set; }
@@ -18,10 +18,8 @@ namespace ContractMonthlyClaimSystem.Models
         public int RejectedClaims { get; set; }
         public int UnderReviewClaims { get; set; }
         public double AverageProcessingTime { get; set; }
-
-        // Calculated properties
-        public decimal ApprovalRate => TotalClaims > 0 ? (decimal)ApprovedClaims / TotalClaims * 100 : 0;
-        public decimal AverageClaimAmount => ApprovedClaims > 0 ? TotalAmount / ApprovedClaims : 0;
+        public decimal ApprovalRate { get; set; } // Changed from get-only to get/set
+        public decimal AverageClaimAmount { get; set; } // Changed from get-only to get/set
     }
 }
 

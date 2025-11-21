@@ -3,6 +3,23 @@
     ViewData["Title"] = "Verify Documents";
 }
 
+<!-- Display Messages -->
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="fas fa-check-circle me-2"></i>@TempData["SuccessMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-circle me-2"></i>@TempData["ErrorMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
 <!-- Page Header -->
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
     <h1 class="h2">Verify Documents</h1>
@@ -11,11 +28,95 @@
             <button type="button" class="btn btn-sm btn-outline-secondary" onclick="window.print()">
                 <i class="fas fa-print me-1"></i>Print
             </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="refreshBtn">
+                <i class="fas fa-sync-alt me-1"></i>Refresh
+            </button>
         </div>
     </div>
 </div>
 
-<!-- Filters and Statistics -->
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-xl-2 col-md-4 mb-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body py-3">
+                <div class="d-flex">
+                    <div class="flex-grow-1">
+                        <h5 class="card-title" id="totalDocuments">0</h5>
+                        <p class="card-text mb-0">Total Documents</p>
+                    </div>
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-file-alt fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-2 col-md-4 mb-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body py-3">
+                <div class="d-flex">
+                    <div class="flex-grow-1">
+                        <h5 class="card-title" id="pendingDocuments">0</h5>
+                        <p class="card-text mb-0">Pending</p>
+                    </div>
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-clock fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-2 col-md-4 mb-3">
+        <div class="card bg-success text-white">
+            <div class="card-body py-3">
+                <div class="d-flex">
+                    <div class="flex-grow-1">
+                        <h5 class="card-title" id="verifiedThisWeek">0</h5>
+                        <p class="card-text mb-0">Verified This Week</p>
+                    </div>
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-check-circle fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-2 col-md-4 mb-3">
+        <div class="card bg-info text-white">
+            <div class="card-body py-3">
+                <div class="d-flex">
+                    <div class="flex-grow-1">
+                        <h5 class="card-title" id="totalClaims">0</h5>
+                        <p class="card-text mb-0">Total Claims</p>
+                    </div>
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-list-alt fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-4 col-md-8 mb-3">
+        <div class="card bg-light">
+            <div class="card-body py-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title mb-1">Document Verification Progress</h6>
+                        <div class="progress" style="height: 8px; width: 200px;">
+                            <div class="progress-bar bg-success" id="verificationProgress" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <div class="text-end">
+                        <small class="text-muted" id="progressText">0% Complete</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters and Actions -->
 <div class="row mb-4">
     <div class="col-md-8">
         <div class="card coordinator-card">
@@ -29,8 +130,14 @@
                             @foreach (var status in ViewBag.StatusList)
                             {
                                 <a href="@Url.Action("VerifyDocuments", new { status = status, claimId = ViewBag.SelectedClaimId })"
-                                   class="btn @(ViewBag.StatusFilter == status ? "btn-primary" : "btn-outline-primary")">
+                                   class="btn @(ViewBag.StatusFilter == status ? "btn-primary" : "btn-outline-primary") position-relative">
                                     @status
+                                    @if (status == "All")
+                                    {
+                                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-warning text-dark">
+                                            @Model.Sum(c => c.SupportingDocuments?.Count ?? 0)
+                                        </span>
+                                    }
                                 </a>
                             }
                         </div>
@@ -40,10 +147,42 @@
         </div>
     </div>
     <div class="col-md-4">
-        <div class="card coordinator-card bg-primary text-white">
-            <div class="card-body text-center">
-                <h4 class="mb-1">@Model.Sum(c => c.SupportingDocuments?.Count ?? 0)</h4>
-                <p class="mb-0">Documents to Verify</p>
+        <div class="card coordinator-card">
+            <div class="card-body">
+                <div class="btn-group w-100">
+                    <button type="button" class="btn btn-outline-success dropdown-toggle" data-bs-toggle="dropdown" id="bulkActionsBtn" disabled>
+                        <i class="fas fa-bolt me-1"></i>Bulk Actions
+                    </button>
+                    <ul class="dropdown-menu w-100">
+                        <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#globalVerifyModal"><i class="fas fa-check-double text-success me-2"></i>Verify Selected</a></li>
+                        <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#globalRejectModal"><i class="fas fa-times-circle text-danger me-2"></i>Reject Selected</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="#" id="selectAllBtn"><i class="fas fa-check-square me-2"></i>Select All</a></li>
+                        <li><a class="dropdown-item" href="#" id="deselectAllBtn"><i class="fas fa-square me-2"></i>Deselect All</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Selected Items Counter -->
+<div class="row mb-4" id="selectedCounter" style="display: none;">
+    <div class="col-12">
+        <div class="alert alert-info py-2">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <i class="fas fa-info-circle me-2"></i>
+                    <span id="selectedCount">0</span> documents selected across <span id="selectedClaimsCount">0</span> claims
+                </div>
+                <div>
+                    <button type="button" class="btn btn-sm btn-success me-2" data-bs-toggle="modal" data-bs-target="#globalVerifyModal">
+                        <i class="fas fa-check-double me-1"></i>Verify Selected
+                    </button>
+                    <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#globalRejectModal">
+                        <i class="fas fa-times-circle me-1"></i>Reject Selected
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -51,7 +190,7 @@
 
 @if (ViewBag.SelectedClaimId != null)
 {
-    var selectedClaim = Model.FirstOrDefault();
+    var selectedClaim = Model.FirstOrDefault(c => c.ClaimID == (int)ViewBag.SelectedClaimId);
     if (selectedClaim != null)
     {
         <div class="row mb-4">
@@ -98,27 +237,33 @@
                         @Model.Sum(c => c.SupportingDocuments?.Count ?? 0) documents across @Model.Count claims
                     </span>
                 </h5>
-                <div class="btn-group">
-                    <button type="button" class="btn btn-sm btn-outline-success" id="selectAllBtn">
-                        <i class="fas fa-check-double me-1"></i>Select All
-                    </button>
-                    <button type="button" class="btn btn-sm btn-outline-danger" id="deselectAllBtn">
-                        <i class="fas fa-times me-1"></i>Deselect All
-                    </button>
+                <div class="d-flex align-items-center">
+                    <div class="input-group input-group-sm me-2" style="width: 200px;">
+                        <input type="text" class="form-control" placeholder="Search documents..." id="searchInput">
+                        <button class="btn btn-outline-secondary" type="button" id="clearSearch">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="autoRefreshToggle" checked>
+                        <label class="form-check-label small" for="autoRefreshToggle">Auto-refresh</label>
+                    </div>
                 </div>
             </div>
             <div class="card-body">
                 @if (Model.Any(c => c.SupportingDocuments?.Any() == true))
                 {
-                    <form id="batchVerifyForm" method="post" asp-action="BatchVerifyDocuments">
+                    <div id="documentsContainer">
                         @foreach (var claim in Model.Where(c => c.SupportingDocuments?.Any() == true))
                         {
-                            <div class="claim-documents-section mb-5">
+                            <div class="claim-documents-section mb-5" data-claim-id="@claim.ClaimID">
                                 <!-- Claim Header -->
                                 <div class="d-flex justify-content-between align-items-center mb-3 p-3 bg-light rounded">
                                     <div class="flex-grow-1">
                                         <div class="d-flex align-items-center">
-                                            <h6 class="mb-0 me-3">Claim #@claim.ClaimID - @claim.Lecturer?.Name</h6>
+                                            <h6 class="mb-0 me-3">
+                                                <i class="fas fa-file-invoice me-2"></i>Claim #@claim.ClaimID - @claim.Lecturer?.Name
+                                            </h6>
                                             <span class="badge @GetStatusBadgeClass(claim.Status) me-2">@claim.Status</span>
                                             <small class="text-muted">
                                                 @claim.Amount.ToString("C") • @claim.SubmissionDate.ToString("dd MMM yyyy") •
@@ -140,7 +285,8 @@
                                             <i class="fas fa-external-link-alt me-1"></i>Review Claim
                                         </a>
                                         <button type="button" class="btn btn-sm btn-success verify-claim-all"
-                                                data-claim-id="@claim.ClaimID">
+                                                data-claim-id="@claim.ClaimID"
+                                                data-doc-count="@claim.SupportingDocuments.Count">
                                             <i class="fas fa-check-circle me-1"></i>Verify All
                                         </button>
                                     </div>
@@ -150,8 +296,8 @@
                                 <div class="row">
                                     @foreach (var doc in claim.SupportingDocuments)
                                     {
-                                        <div class="col-md-6 col-lg-4 mb-3">
-                                            <div class="card document-card h-100 border-@(doc.DocumentID % 2 == 0 ? "primary" : "info")">
+                                        <div class="col-md-6 col-lg-4 mb-3 document-item" data-doc-name="@doc.FileName.ToLower()">
+                                            <div class="card document-card h-100">
                                                 <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
                                                     <small class="text-muted">
                                                         <i class="fas fa-file-@GetFileIcon(doc.FileName) me-1"></i>
@@ -161,12 +307,13 @@
                                                         <input class="form-check-input document-checkbox"
                                                                type="checkbox"
                                                                id="doc_@doc.DocumentID"
-                                                               data-doc-id="@doc.DocumentID">
+                                                               data-doc-id="@doc.DocumentID"
+                                                               data-claim-id="@claim.ClaimID">
                                                     </div>
                                                 </div>
                                                 <div class="card-body">
                                                     <div class="text-center mb-3">
-                                                        <i class="fas fa-file-@GetFileIcon(doc.FileName) fa-3x text-@(doc.DocumentID % 2 == 0 ? "primary" : "info")"></i>
+                                                        <i class="fas fa-file-@GetFileIcon(doc.FileName) fa-3x text-@GetFileColor(doc.FileName)"></i>
                                                     </div>
                                                     <h6 class="card-title text-truncate" title="@doc.FileName"
                                                         data-bs-toggle="tooltip" data-bs-placement="top">
@@ -247,41 +394,12 @@
                                     </div>
                                 </div>
                             </div>
-                            <hr class="my-4">
+                            @if (claim != Model.Last(c => c.SupportingDocuments?.Any() == true))
+                            {
+                                <hr class="my-4">
+                            }
                         }
-
-                        <!-- Global Batch Actions -->
-                        <div class="row mt-4">
-                            <div class="col-12">
-                                <div class="card coordinator-card">
-                                    <div class="card-header bg-warning text-dark">
-                                        <h6 class="card-title mb-0">
-                                            <i class="fas fa-bolt me-2"></i>Global Batch Actions
-                                        </h6>
-                                    </div>
-                                    <div class="card-body">
-                                        <div class="row align-items-center">
-                                            <div class="col-md-6">
-                                                <p class="mb-0">
-                                                    <strong id="globalSelectedCount">0</strong> documents selected across all claims
-                                                </p>
-                                            </div>
-                                            <div class="col-md-6 text-end">
-                                                <div class="btn-group">
-                                                    <button type="button" class="btn btn-success" id="globalVerifyBtn">
-                                                        <i class="fas fa-check-double me-1"></i>Verify All Selected
-                                                    </button>
-                                                    <button type="button" class="btn btn-danger" id="globalRejectBtn">
-                                                        <i class="fas fa-times-circle me-1"></i>Reject All Selected
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </form>
+                    </div>
                 }
                 else
                 {
@@ -298,9 +416,14 @@
                                 <text>All documents have been verified or there are no pending documents.</text>
                             }
                         </p>
-                        <a href="@Url.Action("ReviewClaims")" class="btn btn-primary">
-                            <i class="fas fa-list me-1"></i>Review Claims
-                        </a>
+                        <div class="d-flex justify-content-center gap-2">
+                            <a href="@Url.Action("ReviewClaims")" class="btn btn-primary">
+                                <i class="fas fa-list me-1"></i>Review Claims
+                            </a>
+                            <a href="@Url.Action("Dashboard")" class="btn btn-outline-secondary">
+                                <i class="fas fa-tachometer-alt me-1"></i>Go to Dashboard
+                            </a>
+                        </div>
                     </div>
                 }
             </div>
@@ -388,30 +511,120 @@
     </div>
 </div>
 
-<!-- Batch Action Modal -->
-<div class="modal fade" id="batchActionModal" tabindex="-1">
+<!-- Verify All Documents Modal -->
+<div class="modal fade" id="verifyAllModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="batchActionTitle"></h5>
+                <h5 class="modal-title">
+                    <i class="fas fa-check-double text-success me-2"></i>Verify All Documents
+                </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form id="batchActionForm">
+            <form method="post" asp-action="VerifyAllDocuments" id="verifyAllForm">
                 <div class="modal-body">
-                    <input type="hidden" id="batchClaimId">
-                    <input type="hidden" id="batchActionType">
-                    <p id="batchActionText"></p>
+                    <input type="hidden" name="claimId" id="verifyAllClaimId">
                     <div class="mb-3">
-                        <label class="form-label" id="batchActionLabel"></label>
-                        <textarea class="form-control" rows="4" id="batchActionNotes"
-                                  placeholder="Add notes for this batch action..."></textarea>
+                        <p>You are about to verify all <strong id="verifyAllCount">0</strong> documents for this claim.</p>
+                        <label class="form-label">Verification Notes (Optional):</label>
+                        <textarea name="notes" class="form-control" rows="4"
+                                  placeholder="Add verification notes for all documents..."></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn" id="batchActionConfirmBtn"></button>
+                    <button type="submit" class="btn btn-success">Verify All Documents</button>
                 </div>
             </form>
+        </div>
+    </div>
+</div>
+
+<!-- Global Verify Modal -->
+<div class="modal fade" id="globalVerifyModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-check-double text-success me-2"></i>Verify Selected Documents
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" asp-action="GlobalBatchVerify" id="globalVerifyForm">
+                <input type="hidden" name="isValid" value="true">
+                <div class="modal-body">
+                    <p>You are about to verify <strong id="globalVerifyCount">0</strong> selected documents.</p>
+                    <div class="mb-3">
+                        <label class="form-label">Verification Notes (Optional):</label>
+                        <textarea name="notes" class="form-control" rows="4"
+                                  placeholder="Add verification notes for all selected documents..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">Verify Selected Documents</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Global Reject Modal -->
+<div class="modal fade" id="globalRejectModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-times-circle text-danger me-2"></i>Reject Selected Documents
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" asp-action="GlobalBatchVerify" id="globalRejectForm">
+                <input type="hidden" name="isValid" value="false">
+                <div class="modal-body">
+                    <p>You are about to reject <strong id="globalRejectCount">0</strong> selected documents.</p>
+                    <div class="mb-3">
+                        <label class="form-label">Rejection Reason *:</label>
+                        <textarea name="notes" class="form-control" rows="4" required
+                                  placeholder="Explain why these documents are being rejected..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">Reject Selected Documents</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Document Preview Modal -->
+<div class="modal fade" id="previewModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="previewModalTitle">
+                    <i class="fas fa-search me-2"></i>Document Preview
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <div id="previewContent">
+                    <i class="fas fa-file fa-5x text-muted mb-3"></i>
+                    <h5 id="previewFileName">Loading document...</h5>
+                    <div class="mt-3" id="previewInfo">
+                        <small class="text-muted">File type: <span id="previewFileType">-</span></small><br>
+                        <small class="text-muted">File size: <span id="previewFileSize">-</span></small><br>
+                        <small class="text-muted">Uploaded: <span id="previewUploadDate">-</span></small>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <a href="#" class="btn btn-primary" id="previewDownloadBtn" style="display: none;">
+                    <i class="fas fa-download me-1"></i>Download
+                </a>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
         </div>
     </div>
 </div>
@@ -425,37 +638,58 @@
                 return new bootstrap.Tooltip(tooltipTriggerEl);
             });
 
+            // Load statistics
+            loadDocumentStats();
+
             // Document selection handling
             function updateSelectionCounts() {
-                // Update global count
-                var globalCount = $('.document-checkbox:checked').length;
+                const selectedDocs = $('.document-checkbox:checked');
+                const globalCount = selectedDocs.length;
+                const selectedClaims = [...new Set(selectedDocs.map(function() {
+                    return $(this).data('claim-id');
+                }).get())];
+
                 $('#globalSelectedCount').text(globalCount);
+                $('#selectedCount').text(globalCount);
+                $('#selectedClaimsCount').text(selectedClaims.length);
+                $('#globalVerifyCount').text(globalCount);
+                $('#globalRejectCount').text(globalCount);
+
+                // Update bulk actions button state
+                $('#bulkActionsBtn').prop('disabled', globalCount === 0);
+
+                // Show/hide selected counter
+                if (globalCount > 0) {
+                    $('#selectedCounter').show();
+                } else {
+                    $('#selectedCounter').hide();
+                }
 
                 // Update per-claim counts
                 $('.claim-documents-section').each(function() {
-                    var claimId = $(this).find('input[name="claimId"]').val();
-                    var claimCount = $(this).find('.document-checkbox:checked').length;
-                    $('#selectedCount_' + claimId).text(claimCount);
+                    const claimId = $(this).data('claim-id');
+                    const claimCount = $(this).find('.document-checkbox:checked').length;
+                    $(`#selectedCount_${claimId}`).text(claimCount);
                 });
             }
 
             $('.document-checkbox').change(updateSelectionCounts);
 
             // Select all / deselect all
-            $('#selectAllBtn').click(function() {
-                $('.document-checkbox').prop('checked', true);
-                updateSelectionCounts();
+            $('#selectAllBtn').click(function(e) {
+                e.preventDefault();
+                $('.document-checkbox').prop('checked', true).trigger('change');
             });
 
-            $('#deselectAllBtn').click(function() {
-                $('.document-checkbox').prop('checked', false);
-                updateSelectionCounts();
+            $('#deselectAllBtn').click(function(e) {
+                e.preventDefault();
+                $('.document-checkbox').prop('checked', false).trigger('change');
             });
 
             // Individual document verification
             $('.verify-doc').click(function() {
-                var docId = $(this).data('doc-id');
-                var docName = $(this).data('doc-name');
+                const docId = $(this).data('doc-id');
+                const docName = $(this).data('doc-name');
 
                 $('#verifyDocId').val(docId);
                 $('#verifyDocName').text(docName);
@@ -466,8 +700,8 @@
 
             // Individual document rejection
             $('.reject-doc').click(function() {
-                var docId = $(this).data('doc-id');
-                var docName = $(this).data('doc-name');
+                const docId = $(this).data('doc-id');
+                const docName = $(this).data('doc-name');
 
                 $('#rejectDocId').val(docId);
                 $('#rejectDocName').text(docName);
@@ -477,140 +711,383 @@
 
             // Verify all documents for a claim
             $('.verify-claim-all').click(function() {
-                var claimId = $(this).data('claim-id');
-                var docCount = $(this).closest('.claim-documents-section').find('.document-checkbox').length;
+                const claimId = $(this).data('claim-id');
+                const docCount = $(this).data('doc-count');
 
-                $('#batchClaimId').val(claimId);
-                $('#batchActionType').val('verify');
-                $('#batchActionTitle').html('<i class="fas fa-check-circle text-success me-2"></i>Verify All Documents');
-                $('#batchActionText').text(`You are about to verify all ${docCount} documents for Claim #${claimId}.`);
-                $('#batchActionLabel').text('Verification Notes (Optional):');
-                $('#batchActionConfirmBtn')
-                    .removeClass('btn-danger')
-                    .addClass('btn-success')
-                    .html('<i class="fas fa-check-double me-1"></i>Verify All Documents');
+                $('#verifyAllClaimId').val(claimId);
+                $('#verifyAllCount').text(docCount);
 
-                $('#batchActionModal').modal('show');
+                $('#verifyAllModal').modal('show');
             });
 
-            // Batch actions
+            // Batch verify for specific claim
             $('.batch-verify').click(function() {
-                var claimId = $(this).data('claim-id');
-                var selectedCount = $('#selectedCount_' + claimId).text();
-
-                if (selectedCount === '0') {
-                    alert('Please select at least one document to verify.');
-                    return;
-                }
-
-                $('#batchClaimId').val(claimId);
-                $('#batchActionType').val('verify');
-                $('#batchActionTitle').html('<i class="fas fa-check-circle text-success me-2"></i>Verify Selected Documents');
-                $('#batchActionText').text(`You are about to verify ${selectedCount} selected documents for Claim #${claimId}.`);
-                $('#batchActionLabel').text('Verification Notes (Optional):');
-                $('#batchActionConfirmBtn')
-                    .removeClass('btn-danger')
-                    .addClass('btn-success')
-                    .html('<i class="fas fa-check-double me-1"></i>Verify Selected');
-
-                $('#batchActionModal').modal('show');
-            });
-
-            $('.batch-reject').click(function() {
-                var claimId = $(this).data('claim-id');
-                var selectedCount = $('#selectedCount_' + claimId).text();
-
-                if (selectedCount === '0') {
-                    alert('Please select at least one document to reject.');
-                    return;
-                }
-
-                $('#batchClaimId').val(claimId);
-                $('#batchActionType').val('reject');
-                $('#batchActionTitle').html('<i class="fas fa-times-circle text-danger me-2"></i>Reject Selected Documents');
-                $('#batchActionText').text(`You are about to reject ${selectedCount} selected documents for Claim #${claimId}.`);
-                $('#batchActionLabel').text('Rejection Reason *:');
-                $('#batchActionConfirmBtn')
-                    .removeClass('btn-success')
-                    .addClass('btn-danger')
-                    .html('<i class="fas fa-ban me-1"></i>Reject Selected');
-
-                $('#batchActionModal').modal('show');
-            });
-
-            // Global batch actions
-            $('#globalVerifyBtn').click(function() {
-                var selectedCount = $('#globalSelectedCount').text();
-                if (selectedCount === '0') {
-                    alert('Please select at least one document to verify.');
-                    return;
-                }
-
-                // Implement global verify logic here
-                alert(`Global verify action for ${selectedCount} documents would be implemented here.`);
-            });
-
-            $('#globalRejectBtn').click(function() {
-                var selectedCount = $('#globalSelectedCount').text();
-                if (selectedCount === '0') {
-                    alert('Please select at least one document to reject.');
-                    return;
-                }
-
-                // Implement global reject logic here
-                alert(`Global reject action for ${selectedCount} documents would be implemented here.`);
-            });
-
-            // Batch action confirmation
-            $('#batchActionConfirmBtn').click(function() {
-                var claimId = $('#batchClaimId').val();
-                var actionType = $('#batchActionType').val();
-                var notes = $('#batchActionNotes').val();
-
-                if (actionType === 'reject' && !notes.trim()) {
-                    alert('Please provide a rejection reason.');
-                    return;
-                }
-
-                // Get selected document IDs for this claim
-                var selectedDocs = [];
-                $(`#selectedCount_${claimId}`).closest('.claim-documents-section')
-                    .find('.document-checkbox:checked')
-                    .each(function() {
-                        selectedDocs.push($(this).data('doc-id'));
-                    });
+                const claimId = $(this).data('claim-id');
+                const selectedDocs = $(`.document-checkbox[data-claim-id="${claimId}"]:checked`);
 
                 if (selectedDocs.length === 0) {
-                    // If no specific documents selected, process all for the claim
-                    $(`#selectedCount_${claimId}`).closest('.claim-documents-section')
-                        .find('.document-checkbox')
-                        .each(function() {
-                            selectedDocs.push($(this).data('doc-id'));
-                        });
+                    showNotification('Please select at least one document to verify.', 'warning');
+                    return;
                 }
 
-                // Submit batch action
-                var documentActions = selectedDocs.map(docId =>
-                    `${docId}:${actionType}:${encodeURIComponent(notes)}`
-                ).join('|');
+                const docIds = selectedDocs.map(function() {
+                    return $(this).data('doc-id');
+                }).get();
 
-                $('#batchActionForm').append(`<input type="hidden" name="documentActions" value="${documentActions}">`);
-                $('#batchActionForm').append(`<input type="hidden" name="claimId" value="${claimId}">`);
-                $('#batchActionForm').attr('action', '@Url.Action("BatchVerifyDocuments")');
-                $('#batchActionForm').attr('method', 'post');
-                $('#batchActionForm').submit();
+                $('#globalVerifyCount').text(selectedDocs.length);
+                $('#globalVerifyForm input[name="documentIds"]').remove();
+
+                docIds.forEach(docId => {
+                    $('#globalVerifyForm').append(`<input type="hidden" name="documentIds" value="${docId}">`);
+                });
+
+                $('#globalVerifyModal').modal('show');
             });
 
-            // Document preview (placeholder)
+            // Batch reject for specific claim
+            $('.batch-reject').click(function() {
+                const claimId = $(this).data('claim-id');
+                const selectedDocs = $(`.document-checkbox[data-claim-id="${claimId}"]:checked`);
+
+                if (selectedDocs.length === 0) {
+                    showNotification('Please select at least one document to reject.', 'warning');
+                    return;
+                }
+
+                const docIds = selectedDocs.map(function() {
+                    return $(this).data('doc-id');
+                }).get();
+
+                $('#globalRejectCount').text(selectedDocs.length);
+                $('#globalRejectForm input[name="documentIds"]').remove();
+
+                docIds.forEach(docId => {
+                    $('#globalRejectForm').append(`<input type="hidden" name="documentIds" value="${docId}">`);
+                });
+
+                $('#globalRejectModal').modal('show');
+            });
+
+            // Document preview
             $('.preview-doc').click(function() {
-                var docName = $(this).data('doc-name');
-                alert(`Document preview for "${docName}" would open here.`);
+                const docId = $(this).data('doc-id');
+                const docName = $(this).data('doc-name');
+
+                $('#previewModalTitle').html(`<i class="fas fa-search me-2"></i>Preview: ${docName}`);
+                $('#previewFileName').text(docName);
+                $('#previewDownloadBtn').attr('href', `@Url.Action("DownloadDocument")?documentId=${docId}`).show();
+
+                // Show loading state
+                $('#previewContent').html(`
+                    <div class="spinner-border text-primary mb-3" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <h5>Loading document information...</h5>
+                `);
+
+                // Fetch document details
+                $.ajax({
+                    url: '@Url.Action("PreviewDocument")',
+                    type: 'GET',
+                    data: { documentId: docId },
+                    success: function(response) {
+                        if (response.success) {
+                            $('#previewContent').html(`
+                                <i class="fas fa-file-${getFileIcon(response.fileType)} fa-5x text-${getFileColor(response.fileType)} mb-3"></i>
+                                <h5>${response.documentName}</h5>
+                                <div class="mt-3" id="previewInfo">
+                                    <small class="text-muted">File type: ${response.fileType}</small><br>
+                                    <small class="text-muted">File size: ${formatFileSize(response.fileSize)}</small><br>
+                                    <small class="text-muted">Uploaded: ${response.uploadDate}</small>
+                                </div>
+                                <div class="mt-4">
+                                    <p class="text-muted">Document preview is not available in this version.</p>
+                                    <p class="text-muted small">Please download the document to view its contents.</p>
+                                </div>
+                            `);
+                        } else {
+                            $('#previewContent').html(`
+                                <i class="fas fa-exclamation-triangle fa-5x text-warning mb-3"></i>
+                                <h5>Unable to load document</h5>
+                                <p class="text-muted">${response.message}</p>
+                            `);
+                        }
+                    },
+                    error: function() {
+                        $('#previewContent').html(`
+                            <i class="fas fa-exclamation-triangle fa-5x text-danger mb-3"></i>
+                            <h5>Error loading document</h5>
+                            <p class="text-muted">Please try again later.</p>
+                        `);
+                    }
+                });
+
+                $('#previewModal').modal('show');
             });
+
+            // Search functionality
+            $('#searchInput').on('input', function() {
+                const searchTerm = $(this).val().toLowerCase();
+
+                if (searchTerm === '') {
+                    $('.document-item').show();
+                    return;
+                }
+
+                $('.document-item').each(function() {
+                    const docName = $(this).data('doc-name');
+                    if (docName.includes(searchTerm)) {
+                        $(this).show();
+                    } else {
+                        $(this).hide();
+                    }
+                });
+            });
+
+            $('#clearSearch').click(function() {
+                $('#searchInput').val('').trigger('input');
+            });
+
+            // Refresh button
+            $('#refreshBtn').click(function() {
+                refreshPage();
+            });
+
+            // Auto-refresh toggle
+            let autoRefreshInterval;
+            function setupAutoRefresh() {
+                if ($('#autoRefreshToggle').is(':checked')) {
+                    autoRefreshInterval = setInterval(() => {
+                        loadDocumentStats();
+                    }, 30000); // Refresh every 30 seconds
+                } else {
+                    clearInterval(autoRefreshInterval);
+                }
+            }
+
+            $('#autoRefreshToggle').change(setupAutoRefresh);
+            setupAutoRefresh();
+
+            // Global batch actions
+            $('#globalVerifyForm').submit(function() {
+                const selectedDocs = $('.document-checkbox:checked');
+                if (selectedDocs.length === 0) {
+                    showNotification('Please select at least one document.', 'warning');
+                    return false;
+                }
+
+                const docIds = selectedDocs.map(function() {
+                    return $(this).data('doc-id');
+                }).get();
+
+                $(this).find('input[name="documentIds"]').remove();
+                docIds.forEach(docId => {
+                    $(this).append(`<input type="hidden" name="documentIds" value="${docId}">`);
+                });
+
+                return true;
+            });
+
+            $('#globalRejectForm').submit(function() {
+                const selectedDocs = $('.document-checkbox:checked');
+                if (selectedDocs.length === 0) {
+                    showNotification('Please select at least one document.', 'warning');
+                    return false;
+                }
+
+                const docIds = selectedDocs.map(function() {
+                    return $(this).data('doc-id');
+                }).get();
+
+                $(this).find('input[name="documentIds"]').remove();
+                docIds.forEach(docId => {
+                    $(this).append(`<input type="hidden" name="documentIds" value="${docId}">`);
+                });
+
+                return true;
+            });
+
+            // Helper functions
+            function loadDocumentStats() {
+                $.ajax({
+                    url: '@Url.Action("GetDocumentStats")',
+                    type: 'GET',
+                    data: { status: '@ViewBag.StatusFilter' },
+                    success: function(response) {
+                        if (response.success) {
+                            const stats = response.data;
+                            $('#totalDocuments').text(stats.totalDocuments);
+                            $('#pendingDocuments').text(stats.pendingDocuments);
+                            $('#verifiedThisWeek').text(stats.verifiedThisWeek);
+                            $('#totalClaims').text(stats.totalClaims);
+
+                            // Calculate progress
+                            const progress = stats.totalDocuments > 0 ?
+                                ((stats.totalDocuments - stats.pendingDocuments) / stats.totalDocuments * 100) : 0;
+                            $('#verificationProgress').css('width', progress + '%');
+                            $('#progressText').text(progress.toFixed(1) + '% Complete');
+                        }
+                    }
+                });
+            }
+
+            function refreshPage() {
+                const $refreshBtn = $('#refreshBtn');
+                $refreshBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i>Refreshing...');
+
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
+            }
+
+            function showNotification(message, type) {
+                const alertClass = type === 'success' ? 'alert-success' :
+                                 type === 'warning' ? 'alert-warning' : 'alert-danger';
+                const icon = type === 'success' ? 'fa-check-circle' :
+                            type === 'warning' ? 'fa-exclamation-triangle' : 'fa-exclamation-circle';
+
+                const notification = $(`
+                    <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+                        <i class="fas ${icon} me-2"></i>${message}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                `);
+
+                $('.container-fluid').prepend(notification);
+
+                setTimeout(function() {
+                    notification.alert('close');
+                }, 5000);
+            }
+
+                    function getFileIcon(fileType) {
+            const ext = fileType.toLowerCase();
+            if (ext === '.pdf') return 'pdf';
+            if (ext === '.doc' || ext === '.docx') return 'word';
+            if (ext === '.xls' || ext === '.xlsx') return 'excel';
+            if (['.jpg', '.jpeg', '.png', '.gif'].includes(ext)) return 'image';
+            return 'alt';
+        }
+
+        function getFileColor(fileType) {
+            const ext = fileType.toLowerCase();
+            if (ext === '.pdf') return 'danger';
+            if (ext === '.doc' || ext === '.docx') return 'primary';
+            if (ext === '.xls' || ext === '.xlsx') return 'success';
+            if (['.jpg', '.jpeg', '.png', '.gif'].includes(ext)) return 'info';
+            return 'secondary';
+        }
+
+            function formatFileSize(bytes) {
+                if (bytes === 0) return '0 Bytes';
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            }
 
             // Initialize selection counts
             updateSelectionCounts();
         });
     </script>
+
+@functions {
+    public string GetFileIcon(string fileName)
+    {
+        var extension = System.IO.Path.GetExtension(fileName).ToLower();
+        return extension switch
+        {
+            ".pdf" => "pdf",
+            ".doc" or ".docx" => "word",
+            ".xls" or ".xlsx" => "excel",
+            ".jpg" or ".jpeg" or ".png" or ".gif" => "image",
+            _ => "alt"
+        };
+    }
+
+    public string GetFileColor(string fileName)
+    {
+        var extension = System.IO.Path.GetExtension(fileName).ToLower();
+        return extension switch
+        {
+            ".pdf" => "danger",
+            ".doc" or ".docx" => "primary",
+            ".xls" or ".xlsx" => "success",
+            ".jpg" or ".jpeg" or ".png" or ".gif" => "info",
+            _ => "secondary"
+        };
+    }
+
+    public string GetFileType(string fileName)
+    {
+        var extension = System.IO.Path.GetExtension(fileName).ToLower();
+        return extension switch
+        {
+            ".pdf" => "PDF Document",
+            ".doc" => "Word Document",
+            ".docx" => "Word Document",
+            ".xls" => "Excel Spreadsheet",
+            ".xlsx" => "Excel Spreadsheet",
+            ".jpg" or ".jpeg" => "JPEG Image",
+            ".png" => "PNG Image",
+            ".gif" => "GIF Image",
+            _ => "File"
+        };
+    }
+
+    public string GetFileSize(string filePath)
+    {
+        try
+        {
+            var fullPath = System.IO.Path.Combine("wwwroot", "documents", filePath);
+            if (System.IO.File.Exists(fullPath))
+            {
+                var fileInfo = new System.IO.FileInfo(fullPath);
+                long bytes = fileInfo.Length;
+
+                string[] sizes = { "B", "KB", "MB", "GB" };
+                int order = 0;
+                while (bytes >= 1024 && order < sizes.Length - 1)
+                {
+                    order++;
+                    bytes = bytes / 1024;
+                }
+                return $"{bytes:0.##} {sizes[order]}";
+            }
+        }
+        catch
+        {
+            // If there's any error, return unknown
+        }
+        return "Unknown";
+    }
+
+    public string GetStatusBadgeClass(string status)
+    {
+        return status switch
+        {
+            "Pending" => "bg-warning",
+            "Under Review" => "bg-info",
+            "Coordinator Approved" => "bg-success",
+            "Approved" => "bg-success",
+            "Rejected" => "bg-danger",
+            "Revision Requested" => "bg-secondary",
+            _ => "bg-secondary"
+        };
+    }
+
+    public string GetActivityColor(string action)
+    {
+        return action?.ToLower() switch
+        {
+            var a when a.Contains("approved") => "success",
+            var a when a.Contains("rejected") => "danger",
+            var a when a.Contains("revision") => "warning",
+            var a when a.Contains("verified") => "info",
+            var a when a.Contains("submitted") => "primary",
+            _ => "secondary"
+        };
+    }
 }
 
 <style>
@@ -633,32 +1110,14 @@
         }
 
     .document-card {
-        transition: transform 0.2s, box-shadow 0.2s;
+        transition: transform 0.2s;
+        border: 1px solid #e3e6f0;
     }
 
         .document-card:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
         }
-
-    .claim-documents-section {
-        border-left: 4px solid #0d6efd;
-        padding-left: 15px;
-    }
-
-    .document-meta {
-        font-size: 0.85rem;
-    }
-
-    .form-check-input {
-        cursor: pointer;
-    }
-
-    .batch-actions {
-        background: #f8f9fa;
-        border-radius: 8px;
-        padding: 15px;
-    }
 
     .table th {
         border-top: none;
@@ -670,56 +1129,26 @@
     .table-hover tbody tr:hover {
         background-color: #f8f9fc;
     }
+
+    /* File type colors */
+    .text-pdf {
+        color: #dc3545 !important;
+    }
+
+    .text-word {
+        color: #0d6efd !important;
+    }
+
+    .text-excel {
+        color: #198754 !important;
+    }
+
+    .text-image {
+        color: #0dcaf0 !important;
+    }
+
+    .text-file {
+        color: #6c757d !important;
+    }
 </style>
-
-@functions {
-    public string GetStatusBadgeClass(string status)
-    {
-        return status switch
-        {
-            "Pending" => "bg-warning",
-            "Under Review" => "bg-info",
-            "Coordinator Approved" => "bg-success",
-            "Approved" => "bg-success",
-            "Rejected" => "bg-danger",
-            "Revision Requested" => "bg-secondary",
-            _ => "bg-secondary"
-        };
-    }
-
-    public string GetFileIcon(string fileName)
-    {
-        var extension = System.IO.Path.GetExtension(fileName).ToLower();
-        return extension switch
-        {
-            ".pdf" => "pdf",
-            ".docx" => "word",
-            ".xlsx" => "excel",
-            ".jpg" or ".jpeg" or ".png" => "image",
-            _ => "alt"
-        };
-    }
-
-    public string GetFileType(string fileName)
-    {
-        var extension = System.IO.Path.GetExtension(fileName).ToLower();
-        return extension switch
-        {
-            ".pdf" => "PDF",
-            ".docx" => "Word",
-            ".xlsx" => "Excel",
-            ".jpg" or ".jpeg" => "JPEG",
-            ".png" => "PNG",
-            _ => "File"
-        };
-    }
-
-    public string GetFileSize(string filePath)
-    {
-        // This would typically get the actual file size
-        // For now, return a placeholder
-        var random = new Random();
-        var sizes = new[] { "125 KB", "356 KB", "782 KB", "1.2 MB", "2.5 MB" };
-        return sizes[random.Next(sizes.Length)];
-    }
 }

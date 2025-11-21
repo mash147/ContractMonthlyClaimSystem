@@ -3,14 +3,31 @@
     ViewData["Title"] = "Coordinator Dashboard";
 }
 
+<!-- Display Messages -->
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="fas fa-check-circle me-2"></i>@TempData["SuccessMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-circle me-2"></i>@TempData["ErrorMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
 <!-- Welcome Section -->
 <div class="row mb-4">
     <div class="col-12">
         <div class="welcome-section bg-gradient-primary text-white p-4 rounded coordinator-card">
             <div class="row align-items-center">
                 <div class="col-md-8">
-                    <h2 class="mb-2">Welcome, @User.Identity?.Name!</h2>
-                    <p class="lead mb-0">@(User.IsInRole("Manager") ? "Academic Manager" : "Programme Coordinator") Dashboard - Contract Monthly Claim System</p>
+                    <h2 class="mb-2">Welcome, @(ViewBag.UserName ?? User.Identity?.Name)!</h2>
+                    <p class="lead mb-0">@(ViewBag.UserRole ?? "Coordinator") Dashboard - Contract Monthly Claim System</p>
                 </div>
                 <div class="col-md-4 text-md-end">
                     <div class="current-date bg-white text-dark rounded p-2 d-inline-block">
@@ -33,12 +50,7 @@
                         <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
                             Pending Claims
                         </div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800">@ViewBag.PendingClaimsCount</div>
-                        <div class="mt-2 mb-0 text-muted text-xs">
-                            <span class="text-success mr-2">
-                                <i class="fas fa-arrow-up"></i> Needs Review
-                            </span>
-                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="pendingCount">@(ViewBag.PendingClaimsCount ?? 0)</div>
                     </div>
                     <div class="col-auto">
                         <i class="fas fa-clock fa-2x text-gray-300"></i>
@@ -56,12 +68,7 @@
                         <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
                             Approved This Month
                         </div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800">@ViewBag.ApprovedThisMonth</div>
-                        <div class="mt-2 mb-0 text-muted text-xs">
-                            <span class="text-success mr-2">
-                                <i class="fas fa-check"></i> Completed
-                            </span>
-                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="approvedCount">@(ViewBag.ApprovedThisMonth ?? 0)</div>
                     </div>
                     <div class="col-auto">
                         <i class="fas fa-check-circle fa-2x text-gray-300"></i>
@@ -79,12 +86,7 @@
                         <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
                             Documents to Verify
                         </div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800">@ViewBag.DocumentsToVerify</div>
-                        <div class="mt-2 mb-0 text-muted text-xs">
-                            <span class="text-info mr-2">
-                                <i class="fas fa-file"></i> Awaiting Verification
-                            </span>
-                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="documentsCount">@(ViewBag.DocumentsToVerify ?? 0)</div>
                     </div>
                     <div class="col-auto">
                         <i class="fas fa-file-check fa-2x text-gray-300"></i>
@@ -102,12 +104,7 @@
                         <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
                             Total Claims
                         </div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800">@ViewBag.TotalClaimsCount</div>
-                        <div class="mt-2 mb-0 text-muted text-xs">
-                            <span class="text-warning mr-2">
-                                <i class="fas fa-list"></i> All Time
-                            </span>
-                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="totalCount">@(ViewBag.TotalClaimsCount ?? 0)</div>
                     </div>
                     <div class="col-auto">
                         <i class="fas fa-list-alt fa-2x text-gray-300"></i>
@@ -118,105 +115,49 @@
     </div>
 </div>
 
-<!-- Charts and Additional Metrics -->
+<!-- Quick Actions -->
 <div class="row mb-4">
-    <!-- Claim Status Distribution -->
-    <div class="col-xl-8 col-lg-7">
-        <div class="card coordinator-card mb-4">
-            <div class="card-header bg-white">
-                <h5 class="card-title mb-0">
-                    <i class="fas fa-chart-pie me-2 text-primary"></i>Claim Status Distribution
-                </h5>
-            </div>
-            <div class="card-body">
-                <div class="row text-center">
-                    <div class="col-md-2 col-6 mb-3">
-                        <div class="card bg-primary text-white">
-                            <div class="card-body py-3">
-                                <h4 class="mb-1">@ViewBag.PendingClaimsCount</h4>
-                                <small>Pending</small>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-2 col-6 mb-3">
-                        <div class="card bg-success text-white">
-                            <div class="card-body py-3">
-                                <h4 class="mb-1">@ViewBag.ApprovedThisMonth</h4>
-                                <small>Approved</small>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-2 col-6 mb-3">
-                        <div class="card bg-info text-white">
-                            <div class="card-body py-3">
-                                <h4 class="mb-1">@ViewBag.UnderReviewCount</h4>
-                                <small>Under Review</small>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-2 col-6 mb-3">
-                        <div class="card bg-warning text-white">
-                            <div class="card-body py-3">
-                                <h4 class="mb-1">@ViewBag.RevisionRequestedCount</h4>
-                                <small>Revision Needed</small>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-2 col-6 mb-3">
-                        <div class="card bg-secondary text-white">
-                            <div class="card-body py-3">
-                                <h4 class="mb-1">@ViewBag.RejectedCount</h4>
-                                <small>Rejected</small>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-2 col-6 mb-3">
-                        <div class="card bg-dark text-white">
-                            <div class="card-body py-3">
-                                <h4 class="mb-1">@ViewBag.TotalAmount.ToString("C")</h4>
-                                <small>Total Amount</small>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Quick Actions -->
-    <div class="col-xl-4 col-lg-5">
-        <div class="card coordinator-card mb-4">
+    <div class="col-12">
+        <div class="card coordinator-card">
             <div class="card-header bg-white">
                 <h5 class="card-title mb-0">
                     <i class="fas fa-bolt me-2 text-warning"></i>Quick Actions
                 </h5>
             </div>
             <div class="card-body">
-                <div class="d-grid gap-2">
-                    <a href="@Url.Action("ReviewClaims")" class="btn btn-primary text-start">
-                        <i class="fas fa-clipboard-check me-2"></i>Review Claims
-                        @if (ViewBag.PendingClaimsCount > 0)
-                        {
-                            <span class="badge bg-warning float-end">@ViewBag.PendingClaimsCount</span>
-                        }
-                    </a>
-                    <a href="@Url.Action("VerifyDocuments")" class="btn btn-info text-start">
-                        <i class="fas fa-file-check me-2"></i>Verify Documents
-                        @if (ViewBag.DocumentsToVerify > 0)
-                        {
-                            <span class="badge bg-warning float-end">@ViewBag.DocumentsToVerify</span>
-                        }
-                    </a>
-                    <a href="@Url.Action("GenerateReports")" class="btn btn-success text-start">
-                        <i class="fas fa-chart-bar me-2"></i>Generate Reports
-                    </a>
-                    <a href="@Url.Action("ReviewClaims", new { status = "Revision Requested" })" class="btn btn-warning text-start">
-                        <i class="fas fa-edit me-2"></i>Review Revisions
-                        @if (ViewBag.RevisionRequestedCount > 0)
-                        {
-                            <span class="badge bg-danger float-end">@ViewBag.RevisionRequestedCount</span>
-                        }
-                    </a>
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <a href="@Url.Action("ReviewClaims")" class="btn btn-primary w-100 quick-action-btn" data-action="review">
+                            <i class="fas fa-clipboard-check me-2"></i>Review Claims
+                            @if ((ViewBag.PendingClaimsCount ?? 0) > 0)
+                            {
+                                <span class="badge bg-warning float-end mt-1">@(ViewBag.PendingClaimsCount ?? 0)</span>
+                            }
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="@Url.Action("VerifyDocuments")" class="btn btn-info w-100 quick-action-btn" data-action="verify">
+                            <i class="fas fa-file-check me-2"></i>Verify Documents
+                            @if ((ViewBag.DocumentsToVerify ?? 0) > 0)
+                            {
+                                <span class="badge bg-warning float-end mt-1">@(ViewBag.DocumentsToVerify ?? 0)</span>
+                            }
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="@Url.Action("GenerateReports")" class="btn btn-success w-100 quick-action-btn" data-action="reports">
+                            <i class="fas fa-chart-bar me-2"></i>Generate Reports
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="@Url.Action("ReviewClaims", new { status = "Revision Requested" })" class="btn btn-warning w-100 quick-action-btn" data-action="revisions">
+                            <i class="fas fa-edit me-2"></i>Review Revisions
+                            @if ((ViewBag.RevisionRequestedCount ?? 0) > 0)
+                            {
+                                <span class="badge bg-danger float-end mt-1">@(ViewBag.RevisionRequestedCount ?? 0)</span>
+                            }
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
@@ -230,17 +171,22 @@
             <div class="card-header bg-white d-flex justify-content-between align-items-center">
                 <h5 class="card-title mb-0">
                     <i class="fas fa-clock me-2 text-warning"></i>Pending Claims for Review
-                    <span class="badge bg-warning ms-2">@Model.Count claims</span>
+                    <span class="badge bg-warning ms-2" id="pendingClaimsBadge">@(Model?.Count ?? 0) claims</span>
                 </h5>
-                <a href="@Url.Action("ReviewClaims")" class="btn btn-sm btn-primary">
-                    <i class="fas fa-list me-1"></i>View All
-                </a>
+                <div>
+                    <button class="btn btn-sm btn-outline-secondary me-2" id="refreshBtn" title="Refresh Data">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                    <a href="@Url.Action("ReviewClaims")" class="btn btn-sm btn-primary">
+                        <i class="fas fa-list me-1"></i>View All
+                    </a>
+                </div>
             </div>
             <div class="card-body">
-                @if (Model.Any())
+                @if (Model != null && Model.Any())
                 {
                     <div class="table-responsive">
-                        <table class="table table-hover">
+                        <table class="table table-hover" id="pendingClaimsTable">
                             <thead class="table-light">
                                 <tr>
                                     <th>Claim ID</th>
@@ -256,10 +202,10 @@
                             <tbody>
                                 @foreach (var claim in Model.Take(5))
                                 {
-                                    <tr>
+                                    <tr class="claim-row" data-claim-id="@claim.ClaimID">
                                         <td><strong>#@claim.ClaimID</strong></td>
-                                        <td>@claim.Lecturer?.Name</td>
-                                        <td>@claim.Lecturer?.Department</td>
+                                        <td>@(claim.Lecturer?.Name ?? "N/A")</td>
+                                        <td>@(claim.Lecturer?.Department ?? "N/A")</td>
                                         <td>@claim.HoursWorked</td>
                                         <td>@claim.Amount.ToString("C")</td>
                                         <td>@claim.SubmissionDate.ToString("dd/MM/yyyy")</td>
@@ -276,12 +222,12 @@
                                         <td>
                                             <div class="btn-group" role="group">
                                                 <a href="@Url.Action("ReviewClaim", new { id = claim.ClaimID })"
-                                                   class="btn btn-sm btn-outline-primary">
-                                                    <i class="fas fa-eye"></i> Review
+                                                   class="btn btn-sm btn-outline-primary" title="Review Claim">
+                                                    <i class="fas fa-eye"></i>
                                                 </a>
                                                 <a href="@Url.Action("VerifyDocuments", new { claimId = claim.ClaimID })"
-                                                   class="btn btn-sm btn-outline-info">
-                                                    <i class="fas fa-file-check"></i> Docs
+                                                   class="btn btn-sm btn-outline-info" title="View Documents">
+                                                    <i class="fas fa-file"></i>
                                                 </a>
                                             </div>
                                         </td>
@@ -315,59 +261,101 @@
     </div>
 </div>
 
-<!-- Recent Activity -->
-<div class="row mt-4">
-    <div class="col-12">
-        <div class="card coordinator-card">
-            <div class="card-header bg-white">
-                <h5 class="card-title mb-0">
-                    <i class="fas fa-history me-2 text-info"></i>Recent Activity
-                </h5>
-            </div>
-            <div class="card-body">
-                <div class="timeline">
-                    @{
-                        var recentActivities = Model
-                        .SelectMany(c => c.AuditTrails)
-                        .OrderByDescending(a => a.Timestamp)
-                        .Take(6)
-                        .ToList();
-                    }
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Auto-dismiss alerts after 5 seconds
+            setTimeout(function() {
+                $('.alert').alert('close');
+            }, 5000);
 
-                    @if (recentActivities.Any())
-                    {
-                        foreach (var activity in recentActivities)
-                        {
-                            <div class="timeline-item mb-3">
-                                <div class="timeline-marker bg-@GetActivityColor(activity.Action)"></div>
-                                <div class="timeline-content">
-                                    <div class="d-flex justify-content-between align-items-start">
-                                        <div>
-                                            <strong>@activity.Action</strong>
-                                            <div class="text-muted small">
-                                                Claim #@activity.ClaimID - By @activity.User?.FullName
-                                            </div>
-                                        </div>
-                                        <span class="timeline-date text-muted small">
-                                            @activity.Timestamp.ToString("MMM dd, yyyy HH:mm")
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                        }
+            // Refresh button functionality
+            $('#refreshBtn').click(function() {
+                refreshDashboard();
+            });
+
+            // Quick action buttons animation
+            $('.quick-action-btn').hover(
+                function() {
+                    $(this).addClass('shadow');
+                },
+                function() {
+                    $(this).removeClass('shadow');
+                }
+            );
+
+            // Auto-refresh dashboard every 2 minutes
+            setInterval(function() {
+                refreshDashboardStats();
+            }, 120000);
+
+            // Initialize tooltips
+            $('[title]').tooltip();
+        });
+
+        function refreshDashboard() {
+            const $refreshBtn = $('#refreshBtn');
+            $refreshBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
+
+            $.ajax({
+                url: '@Url.Action("GetStatistics", "Coordinator")',
+                type: 'GET',
+                success: function(response) {
+                    if (response.success) {
+                        updateDashboardStats(response.data);
+                        showNotification('Dashboard refreshed successfully!', 'success');
+                    } else {
+                        showNotification('Error refreshing dashboard: ' + response.message, 'error');
                     }
-                    else
-                    {
-                        <div class="text-center py-3">
-                            <i class="fas fa-info-circle fa-2x text-muted mb-2"></i>
-                            <p class="text-muted mb-0">No recent activity to display</p>
-                        </div>
+                },
+                error: function(xhr, status, error) {
+                    showNotification('Error refreshing dashboard: ' + error, 'error');
+                },
+                complete: function() {
+                    $refreshBtn.prop('disabled', false).html('<i class="fas fa-sync-alt"></i>');
+                }
+            });
+        }
+
+        function refreshDashboardStats() {
+            $.ajax({
+                url: '@Url.Action("GetStatistics", "Coordinator")',
+                type: 'GET',
+                success: function(response) {
+                    if (response.success) {
+                        updateDashboardStats(response.data);
                     }
+                }
+            });
+        }
+
+        function updateDashboardStats(data) {
+            $('#pendingCount').text(data.PendingClaims);
+            $('#approvedCount').text(data.ApprovedClaims);
+            $('#documentsCount').text(data.PendingClaims); // Approximate documents count
+            $('#totalCount').text(data.TotalClaims);
+            $('#pendingClaimsBadge').text(data.PendingClaims + ' claims');
+        }
+
+        function showNotification(message, type) {
+            const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+            const icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
+
+            const notification = $(`
+                <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+                    <i class="fas ${icon} me-2"></i>${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
-            </div>
-        </div>
-    </div>
-</div>
+            `);
+
+            $('.container-fluid').prepend(notification);
+
+            setTimeout(function() {
+                notification.alert('close');
+            }, 3000);
+        }
+    </script>
+}
 
 <style>
     .border-left-primary {
@@ -390,66 +378,41 @@
         background: linear-gradient(45deg, #4e73df, #224abe);
     }
 
-    .timeline {
-        position: relative;
-        padding-left: 30px;
+    .coordinator-card {
+        border: none;
+        border-radius: 10px;
+        box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+        transition: all 0.3s;
     }
 
-    .timeline-item {
-        position: relative;
-        padding-bottom: 10px;
-    }
-
-        .timeline-item:not(:last-child):before {
-            content: '';
-            position: absolute;
-            left: -20px;
-            top: 0;
-            bottom: -10px;
-            width: 2px;
-            background-color: #e9ecef;
+        .coordinator-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0.5rem 2rem 0 rgba(58, 59, 69, 0.2);
         }
 
-    .timeline-marker {
-        position: absolute;
-        left: -30px;
-        top: 5px;
-        width: 12px;
-        height: 12px;
-        border-radius: 50%;
-    }
-
-    .timeline-content {
-        background: #f8f9fa;
-        padding: 10px 15px;
-        border-radius: 6px;
-    }
-
-    .timeline-date {
-        color: #6c757d;
-        font-size: 0.875rem;
-    }
-
-    .text-xs {
-        font-size: 0.7rem;
+    .quick-action-btn {
+        transition: all 0.3s;
+        position: relative;
     }
 
     .welcome-section {
         box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
     }
-</style>
 
-@functions {
-    public string GetActivityColor(string action)
-    {
-        return action.ToLower() switch
-        {
-            var a when a.Contains("approved") => "success",
-            var a when a.Contains("rejected") => "danger",
-            var a when a.Contains("revision") => "warning",
-            var a when a.Contains("verified") => "info",
-            var a when a.Contains("submitted") => "primary",
-            _ => "secondary"
-        };
+    .current-date {
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
     }
-}
+
+    .claim-row {
+        transition: all 0.3s;
+    }
+
+        .claim-row:hover {
+            background-color: #f8f9fa;
+        }
+
+    #refreshBtn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+</style>

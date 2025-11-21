@@ -3,6 +3,23 @@
     ViewData["Title"] = "Review Claims";
 }
 
+<!-- Display Messages -->
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="fas fa-check-circle me-2"></i>@TempData["SuccessMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-circle me-2"></i>@TempData["ErrorMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
 <!-- Page Header -->
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
     <h1 class="h2">Review Claims</h1>
@@ -11,36 +28,160 @@
             <button type="button" class="btn btn-sm btn-outline-secondary" onclick="window.print()">
                 <i class="fas fa-print me-1"></i>Print
             </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="refreshBtn">
+                <i class="fas fa-sync-alt me-1"></i>Refresh
+            </button>
         </div>
     </div>
 </div>
 
-<!-- Status Filter -->
+<!-- Bulk Actions & Filters -->
 <div class="row mb-4">
     <div class="col-12">
         <div class="card coordinator-card">
             <div class="card-body">
                 <div class="row align-items-center">
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <h5 class="card-title mb-0">Filter by Status</h5>
                     </div>
-                    <div class="col-md-8">
+                    <div class="col-md-6">
                         <div class="btn-group w-100" role="group">
                             @foreach (var status in ViewBag.StatusList)
                             {
                                 <a href="@Url.Action("ReviewClaims", new { status = status })"
-                                   class="btn @(ViewBag.CurrentStatus == status ? "btn-primary" : "btn-outline-primary")">
+                                   class="btn @(ViewBag.CurrentStatus == status ? "btn-primary" : "btn-outline-primary") position-relative">
                                     @status
                                     @{
                                         var count = Model.Count(c => c.Status == status);
                                         if (count > 0)
                                         {
-                                            <span class="badge bg-light text-dark ms-1">@count</span>
+                                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-warning text-dark">
+                                                @count
+                                            </span>
                                         }
                                     }
                                 </a>
                             }
                         </div>
+                    </div>
+                    <div class="col-md-3 text-end">
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-outline-success dropdown-toggle" data-bs-toggle="dropdown" id="bulkActionsBtn" disabled>
+                                <i class="fas fa-bolt me-1"></i>Bulk Actions
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#bulkApproveModal"><i class="fas fa-check text-success me-2"></i>Approve Selected</a></li>
+                                <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#bulkRejectModal"><i class="fas fa-times text-danger me-2"></i>Reject Selected</a></li>
+                                <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#bulkUnderReviewModal"><i class="fas fa-search text-info me-2"></i>Mark as Under Review</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="#" id="selectAllBtn"><i class="fas fa-check-square me-2"></i>Select All</a></li>
+                                <li><a class="dropdown-item" href="#" id="deselectAllBtn"><i class="fas fa-square me-2"></i>Deselect All</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Selected Items Counter -->
+                <div class="row mt-3" id="selectedCounter" style="display: none;">
+                    <div class="col-12">
+                        <div class="alert alert-info py-2">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <span id="selectedCount">0</span> claims selected for bulk action
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-xl-2 col-md-4 mb-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body py-3">
+                <div class="d-flex">
+                    <div class="flex-grow-1">
+                        <h5 class="card-title">@Model.Count(c => c.Status == "Pending")</h5>
+                        <p class="card-text mb-0">Pending</p>
+                    </div>
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-clock fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-2 col-md-4 mb-3">
+        <div class="card bg-info text-white">
+            <div class="card-body py-3">
+                <div class="d-flex">
+                    <div class="flex-grow-1">
+                        <h5 class="card-title">@Model.Count(c => c.Status == "Under Review")</h5>
+                        <p class="card-text mb-0">Under Review</p>
+                    </div>
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-search fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-2 col-md-4 mb-3">
+        <div class="card bg-success text-white">
+            <div class="card-body py-3">
+                <div class="d-flex">
+                    <div class="flex-grow-1">
+                        <h5 class="card-title">@Model.Count(c => c.Status == "Coordinator Approved")</h5>
+                        <p class="card-text mb-0">Approved</p>
+                    </div>
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-check-circle fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-2 col-md-4 mb-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body py-3">
+                <div class="d-flex">
+                    <div class="flex-grow-1">
+                        <h5 class="card-title">@Model.Count(c => c.Status == "Revision Requested")</h5>
+                        <p class="card-text mb-0">Revision Needed</p>
+                    </div>
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-edit fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-2 col-md-4 mb-3">
+        <div class="card bg-danger text-white">
+            <div class="card-body py-3">
+                <div class="d-flex">
+                    <div class="flex-grow-1">
+                        <h5 class="card-title">@Model.Count(c => c.Status == "Rejected")</h5>
+                        <p class="card-text mb-0">Rejected</p>
+                    </div>
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-times-circle fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-2 col-md-4 mb-3">
+        <div class="card bg-secondary text-white">
+            <div class="card-body py-3">
+                <div class="d-flex">
+                    <div class="flex-grow-1">
+                        <h5 class="card-title">@Model.Count</h5>
+                        <p class="card-text mb-0">Total</p>
+                    </div>
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-list-alt fa-2x opacity-50"></i>
                     </div>
                 </div>
             </div>
@@ -57,14 +198,29 @@
                     <i class="fas fa-list me-2"></i>@ViewBag.CurrentStatus Claims
                     <span class="badge bg-primary ms-2">@Model.Count</span>
                 </h5>
+                <div class="d-flex align-items-center">
+                    <div class="input-group input-group-sm me-2" style="width: 200px;">
+                        <input type="text" class="form-control" placeholder="Search claims..." id="searchInput">
+                        <button class="btn btn-outline-secondary" type="button" id="clearSearch">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="form-check form-switch me-2">
+                        <input class="form-check-input" type="checkbox" id="autoRefresh" checked>
+                        <label class="form-check-label small" for="autoRefresh">Auto-refresh</label>
+                    </div>
+                </div>
             </div>
             <div class="card-body">
                 @if (Model.Any())
                 {
                     <div class="table-responsive">
-                        <table class="table table-hover">
+                        <table class="table table-hover" id="claimsTable">
                             <thead class="table-light">
                                 <tr>
+                                    <th width="40">
+                                        <input type="checkbox" class="form-check-input" id="selectAllCheckbox">
+                                    </th>
                                     <th>Claim ID</th>
                                     <th>Lecturer</th>
                                     <th>Department</th>
@@ -73,31 +229,54 @@
                                     <th>Submitted</th>
                                     <th>Documents</th>
                                     <th>Status</th>
-                                    <th>Actions</th>
+                                    <th width="200">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @foreach (var claim in Model)
                                 {
-                                    <tr>
+                                    <tr class="claim-row" data-claim-id="@claim.ClaimID" data-lecturer="@claim.Lecturer?.Name" data-department="@claim.Lecturer?.Department">
+                                        <td>
+                                            <input type="checkbox" class="form-check-input claim-checkbox" value="@claim.ClaimID">
+                                        </td>
                                         <td>
                                             <strong>#@claim.ClaimID</strong>
                                         </td>
-                                        <td>@claim.Lecturer?.Name</td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="avatar-sm bg-primary rounded-circle d-flex align-items-center justify-content-center me-2">
+                                                    <span class="text-white fw-bold small">@(claim.Lecturer?.Name?.Substring(0, 1) ?? "L")</span>
+                                                </div>
+                                                <div>
+                                                    <div class="fw-semibold">@claim.Lecturer?.Name</div>
+                                                    <small class="text-muted">@claim.Lecturer?.User?.Email</small>
+                                                </div>
+                                            </div>
+                                        </td>
                                         <td>@claim.Lecturer?.Department</td>
-                                        <td>@claim.HoursWorked</td>
-                                        <td>@claim.Amount.ToString("C")</td>
-                                        <td>@claim.SubmissionDate.ToString("dd MMM yyyy")</td>
+                                        <td>
+                                            <span class="badge bg-light text-dark">@claim.HoursWorked hrs</span>
+                                        </td>
+                                        <td>
+                                            <span class="fw-bold text-success">@claim.Amount.ToString("C")</span>
+                                        </td>
+                                        <td>
+                                            <small>@claim.SubmissionDate.ToString("dd MMM yy")</small>
+                                            <br>
+                                            <small class="text-muted">@claim.SubmissionDate.ToString("HH:mm")</small>
+                                        </td>
                                         <td>
                                             @if (claim.SupportingDocuments?.Any() == true)
                                             {
                                                 <span class="badge bg-success" data-bs-toggle="tooltip" title="@claim.SupportingDocuments.Count documents">
-                                                    @claim.SupportingDocuments.Count
+                                                    <i class="fas fa-file me-1"></i>@claim.SupportingDocuments.Count
                                                 </span>
                                             }
                                             else
                                             {
-                                                <span class="badge bg-warning">None</span>
+                                                <span class="badge bg-warning" data-bs-toggle="tooltip" title="No documents">
+                                                    <i class="fas fa-file-excel me-1"></i>0
+                                                </span>
                                             }
                                         </td>
                                         <td>
@@ -109,21 +288,54 @@
                                             <div class="btn-group" role="group">
                                                 <a href="@Url.Action("ReviewClaim", new { id = claim.ClaimID })"
                                                    class="btn btn-sm btn-outline-primary" data-bs-toggle="tooltip" title="Review Claim Details">
-                                                    <i class="fas fa-eye"></i> Review
+                                                    <i class="fas fa-eye"></i>
                                                 </a>
                                                 <a href="@Url.Action("VerifyDocuments", new { claimId = claim.ClaimID })"
                                                    class="btn btn-sm btn-outline-info" data-bs-toggle="tooltip" title="Verify Documents">
-                                                    <i class="fas fa-file-check"></i> Docs
+                                                    <i class="fas fa-file-check"></i>
                                                 </a>
-                                                @if (claim.Status == "Pending" || claim.Status == "Revision Requested")
-                                                {
-                                                    <form method="post" asp-action="SetUnderReview" class="d-inline">
-                                                        <input type="hidden" name="claimId" value="@claim.ClaimID" />
-                                                        <button type="submit" class="btn btn-sm btn-outline-warning" data-bs-toggle="tooltip" title="Mark as Under Review">
-                                                            <i class="fas fa-search"></i> Review
-                                                        </button>
-                                                    </form>
-                                                }
+
+                                                <!-- Quick Actions Dropdown -->
+                                                <div class="btn-group" role="group">
+                                                    <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                                                        <i class="fas fa-ellipsis-v"></i>
+                                                    </button>
+                                                    <ul class="dropdown-menu">
+                                                        @if (claim.Status == "Pending" || claim.Status == "Revision Requested")
+                                                        {
+                                                            <li>
+                                                                <form method="post" asp-action="SetUnderReview" class="d-inline">
+                                                                    <input type="hidden" name="claimId" value="@claim.ClaimID" />
+                                                                    <button type="submit" class="dropdown-item">
+                                                                        <i class="fas fa-search text-info me-2"></i>Mark Under Review
+                                                                    </button>
+                                                                </form>
+                                                            </li>
+                                                        }
+                                                        @if (claim.Status == "Pending" || claim.Status == "Under Review")
+                                                        {
+                                                            <li>
+                                                                <form method="post" asp-action="QuickApproveFromList" class="d-inline">
+                                                                    <input type="hidden" name="claimId" value="@claim.ClaimID" />
+                                                                    <button type="submit" class="dropdown-item" onclick="return confirm('Approve this claim?')">
+                                                                        <i class="fas fa-check text-success me-2"></i>Quick Approve
+                                                                    </button>
+                                                                </form>
+                                                            </li>
+                                                            <li>
+                                                                <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#quickRejectModal" data-claim-id="@claim.ClaimID">
+                                                                    <i class="fas fa-times text-danger me-2"></i>Quick Reject
+                                                                </button>
+                                                            </li>
+                                                        }
+                                                        <li><hr class="dropdown-divider"></li>
+                                                        <li>
+                                                            <a class="dropdown-item" href="@Url.Action("ReviewClaim", new { id = claim.ClaimID })">
+                                                                <i class="fas fa-external-link-alt me-2"></i>Full Details
+                                                            </a>
+                                                        </li>
+                                                    </ul>
+                                                </div>
                                             </div>
                                         </td>
                                     </tr>
@@ -131,19 +343,153 @@
                             </tbody>
                         </table>
                     </div>
+
+                    <!-- Table Summary -->
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <small class="text-muted">
+                                Showing @Model.Count claims •
+                                Total Amount: <strong>@Model.Where(c => c.Status == "Approved" || c.Status == "Coordinator Approved").Sum(c => c.Amount).ToString("C")</strong>
+                            </small>
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <small class="text-muted">
+                                Last updated: <span id="lastUpdated">@DateTime.Now.ToString("HH:mm:ss")</span>
+                            </small>
+                        </div>
+                    </div>
                 }
                 else
                 {
-                    <div class="text-center py-4">
-                        <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
-                        <h5 class="text-success">No @ViewBag.CurrentStatus Claims!</h5>
-                        <p class="text-muted">There are no @ViewBag.CurrentStatus.ToLower() claims at the moment.</p>
-                        <a href="@Url.Action("ReviewClaims", new { status = "Pending" })" class="btn btn-primary">
-                            <i class="fas fa-list me-1"></i>View Pending Claims
-                        </a>
+                    <div class="text-center py-5">
+                        <i class="fas fa-clipboard-list fa-4x text-muted mb-3"></i>
+                        <h4 class="text-muted">No @ViewBag.CurrentStatus Claims Found</h4>
+                        <p class="text-muted mb-4">There are no @ViewBag.CurrentStatus.ToLower() claims at the moment.</p>
+                        <div class="d-flex justify-content-center gap-2">
+                            <a href="@Url.Action("ReviewClaims", new { status = "Pending" })" class="btn btn-primary">
+                                <i class="fas fa-clock me-1"></i>View Pending Claims
+                            </a>
+                            <a href="@Url.Action("Dashboard")" class="btn btn-outline-secondary">
+                                <i class="fas fa-tachometer-alt me-1"></i>Go to Dashboard
+                            </a>
+                        </div>
                     </div>
                 }
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk Action Modals -->
+<!-- Bulk Approve Modal -->
+<div class="modal fade" id="bulkApproveModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-check-circle text-success me-2"></i>Bulk Approve Claims
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" asp-action="BulkApprove" id="bulkApproveForm">
+                <div class="modal-body">
+                    <p>You are about to approve <strong id="approveCount">0</strong> selected claims.</p>
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        This action cannot be undone. Approved claims will be forwarded to the manager.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">Approve Selected Claims</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk Reject Modal -->
+<div class="modal fade" id="bulkRejectModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-times-circle text-danger me-2"></i>Bulk Reject Claims
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" asp-action="BulkReject" id="bulkRejectForm">
+                <div class="modal-body">
+                    <p>You are about to reject <strong id="rejectCount">0</strong> selected claims.</p>
+                    <div class="mb-3">
+                        <label class="form-label">Rejection Reason *:</label>
+                        <textarea name="reason" class="form-control" rows="3" required placeholder="Provide a reason for rejection..."></textarea>
+                    </div>
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        This action cannot be undone. Lecturers will be notified of the rejection.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">Reject Selected Claims</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk Under Review Modal -->
+<div class="modal fade" id="bulkUnderReviewModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-search text-info me-2"></i>Bulk Mark as Under Review
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" asp-action="BulkSetUnderReview" id="bulkUnderReviewForm">
+                <div class="modal-body">
+                    <p>You are about to mark <strong id="underReviewCount">0</strong> selected claims as Under Review.</p>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Claims will be moved to Under Review status for further examination.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-info">Mark as Under Review</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Reject Modal -->
+<div class="modal fade" id="quickRejectModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-times-circle text-danger me-2"></i>Quick Reject Claim
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" asp-action="QuickRejectFromList" id="quickRejectForm">
+                <input type="hidden" name="claimId" id="quickRejectClaimId">
+                <div class="modal-body">
+                    <p>You are about to reject claim <strong id="rejectClaimNumber"></strong>.</p>
+                    <div class="mb-3">
+                        <label class="form-label">Rejection Reason *:</label>
+                        <textarea name="reason" class="form-control" rows="3" required placeholder="Provide a reason for rejection..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">Reject Claim</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -156,6 +502,149 @@
             var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
                 return new bootstrap.Tooltip(tooltipTriggerEl);
             });
+
+            // Selection functionality
+            function updateSelection() {
+                const selectedCount = $('.claim-checkbox:checked').length;
+                const totalCount = $('.claim-checkbox').length;
+
+                $('#selectedCount').text(selectedCount);
+                $('#approveCount').text(selectedCount);
+                $('#rejectCount').text(selectedCount);
+                $('#underReviewCount').text(selectedCount);
+
+                if (selectedCount > 0) {
+                    $('#selectedCounter').show();
+                    $('#bulkActionsBtn').prop('disabled', false);
+                    $('#selectAllCheckbox').prop('checked', selectedCount === totalCount);
+                } else {
+                    $('#selectedCounter').hide();
+                    $('#bulkActionsBtn').prop('disabled', true);
+                    $('#selectAllCheckbox').prop('checked', false);
+                }
+            }
+
+            // Select all functionality
+            $('#selectAllCheckbox').change(function() {
+                $('.claim-checkbox').prop('checked', this.checked);
+                updateSelection();
+            });
+
+            $('.claim-checkbox').change(updateSelection);
+
+            // Select all/deselect all buttons
+            $('#selectAllBtn').click(function(e) {
+                e.preventDefault();
+                $('.claim-checkbox').prop('checked', true);
+                updateSelection();
+            });
+
+            $('#deselectAllBtn').click(function(e) {
+                e.preventDefault();
+                $('.claim-checkbox').prop('checked', false);
+                updateSelection();
+            });
+
+            // Bulk action forms
+            $('#bulkApproveForm').submit(function() {
+                const selectedIds = $('.claim-checkbox:checked').map(function() {
+                    return $(this).val();
+                }).get();
+
+                selectedIds.forEach(id => {
+                    $(this).append(`<input type="hidden" name="claimIds" value="${id}">`);
+                });
+            });
+
+            $('#bulkRejectForm, #bulkUnderReviewForm').submit(function() {
+                const selectedIds = $('.claim-checkbox:checked').map(function() {
+                    return $(this).val();
+                }).get();
+
+                selectedIds.forEach(id => {
+                    $(this).append(`<input type="hidden" name="claimIds" value="${id}">`);
+                });
+            });
+
+            // Quick reject modal
+            $('#quickRejectModal').on('show.bs.modal', function(event) {
+                const button = $(event.relatedTarget);
+                const claimId = button.data('claim-id');
+                const claimNumber = button.closest('tr').find('td:nth-child(2) strong').text();
+
+                $('#quickRejectClaimId').val(claimId);
+                $('#rejectClaimNumber').text(claimNumber);
+            });
+
+            // Search functionality
+            $('#searchInput').on('input', function() {
+                const searchText = $(this).val().toLowerCase();
+
+                $('.claim-row').each(function() {
+                    const lecturer = $(this).data('lecturer')?.toLowerCase() || '';
+                    const department = $(this).data('department')?.toLowerCase() || '';
+                    const claimId = $(this).data('claim-id').toString();
+
+                    const matches = lecturer.includes(searchText) ||
+                                  department.includes(searchText) ||
+                                  claimId.includes(searchText);
+
+                    $(this).toggle(matches);
+                });
+            });
+
+            $('#clearSearch').click(function() {
+                $('#searchInput').val('').trigger('input');
+            });
+
+            // Refresh functionality
+            $('#refreshBtn').click(function() {
+                const $btn = $(this);
+                $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i>Refreshing...');
+
+                setTimeout(function() {
+                    location.reload();
+                }, 1000);
+            });
+
+            // Auto-refresh
+            let autoRefreshInterval;
+
+            function setupAutoRefresh() {
+                if ($('#autoRefresh').is(':checked')) {
+                    autoRefreshInterval = setInterval(function() {
+                        $('#lastUpdated').text(new Date().toLocaleTimeString());
+                    }, 30000); // Update timestamp every 30 seconds
+                } else {
+                    clearInterval(autoRefreshInterval);
+                }
+            }
+
+            $('#autoRefresh').change(setupAutoRefresh);
+            setupAutoRefresh();
+
+            // Auto-dismiss alerts
+            setTimeout(function() {
+                $('.alert').alert('close');
+            }, 5000);
+
+            // Row click functionality (excluding checkboxes and buttons)
+            $('.claim-row').click(function(e) {
+                if (!$(e.target).is('input, button, a, i, .btn, .dropdown-toggle')) {
+                    const claimId = $(this).data('claim-id');
+                    window.location.href = '@Url.Action("ReviewClaim")' + '?id=' + claimId;
+                }
+            });
+
+            // Add hover effects
+            $('.claim-row').hover(
+                function() {
+                    $(this).addClass('table-active');
+                },
+                function() {
+                    $(this).removeClass('table-active');
+                }
+            );
         });
     </script>
 }
@@ -188,6 +677,59 @@
 
     .table-hover tbody tr:hover {
         background-color: #f8f9fc;
+        cursor: pointer;
+    }
+
+    .avatar-sm {
+        width: 32px;
+        height: 32px;
+        font-size: 0.875rem;
+    }
+
+    .status-badge {
+        font-size: 0.75rem;
+        padding: 0.35em 0.65em;
+    }
+
+    .form-check-input {
+        cursor: pointer;
+    }
+
+    .claim-row {
+        transition: all 0.2s ease;
+    }
+
+    .dropdown-menu {
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+        border: none;
+        border-radius: 8px;
+    }
+
+    .dropdown-item {
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+    }
+
+    .btn-group .btn {
+        border-radius: 6px;
+    }
+
+    #selectedCounter {
+        animation: fadeIn 0.3s ease;
+    }
+
+    @@keyframes fadeIn {
+        from {
+            opacity: 0;
+        }
+
+        to {
+            opacity: 1;
+        }
+    }
+
+    .table-active {
+        background-color: #e3f2fd !important;
     }
 </style>
 

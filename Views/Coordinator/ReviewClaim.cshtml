@@ -3,6 +3,23 @@
     ViewData["Title"] = "Review Claim";
 }
 
+<!-- Display Messages -->
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="fas fa-check-circle me-2"></i>@TempData["SuccessMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-circle me-2"></i>@TempData["ErrorMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
 <!-- Page Header -->
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
     <h1 class="h2">Review Claim #@Model.ClaimID</h1>
@@ -56,6 +73,10 @@
                                 <th>Submitted:</th>
                                 <td>@Model.SubmissionDate.ToString("dd MMMM yyyy")</td>
                             </tr>
+                            <tr>
+                                <th>Status:</th>
+                                <td><span class="badge @GetStatusBadgeClass(Model.Status)">@Model.Status</span></td>
+                            </tr>
                         </table>
                     </div>
                 </div>
@@ -65,7 +86,7 @@
                     <div class="mt-3">
                         <label class="form-label fw-bold">Lecturer's Notes:</label>
                         <div class="border rounded p-3 bg-light">
-                            @Model.AdditionalNotes
+                            @Html.Raw(Model.AdditionalNotes.Replace("\n", "<br>"))
                         </div>
                     </div>
                 }
@@ -85,7 +106,7 @@
                     </a>
                     @if (Model.SupportingDocuments?.Any() == true)
                     {
-                        <button type="button" class="btn btn-sm btn-outline-success" onclick="verifyAllDocuments()">
+                        <button type="button" class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#verifyAllModal">
                             <i class="fas fa-check-double me-1"></i>Verify All
                         </button>
                     }
@@ -158,19 +179,19 @@
                 <div class="row">
                     <div class="col-md-6">
                         <div class="form-check mb-3">
-                            <input class="form-check-input" type="checkbox" id="checkDocuments">
+                            <input class="form-check-input checklist-item" type="checkbox" id="checkDocuments" data-checklist="documents">
                             <label class="form-check-label" for="checkDocuments">
                                 All required documents are present and valid
                             </label>
                         </div>
                         <div class="form-check mb-3">
-                            <input class="form-check-input" type="checkbox" id="checkHours">
+                            <input class="form-check-input checklist-item" type="checkbox" id="checkHours" data-checklist="hours">
                             <label class="form-check-label" for="checkHours">
                                 Hours worked match the claim period
                             </label>
                         </div>
                         <div class="form-check mb-3">
-                            <input class="form-check-input" type="checkbox" id="checkCalculations">
+                            <input class="form-check-input checklist-item" type="checkbox" id="checkCalculations" data-checklist="calculations">
                             <label class="form-check-label" for="checkCalculations">
                                 Amount calculations are correct
                             </label>
@@ -178,24 +199,30 @@
                     </div>
                     <div class="col-md-6">
                         <div class="form-check mb-3">
-                            <input class="form-check-input" type="checkbox" id="checkDates">
+                            <input class="form-check-input checklist-item" type="checkbox" id="checkDates" data-checklist="dates">
                             <label class="form-check-label" for="checkDates">
                                 Dates and periods are accurate
                             </label>
                         </div>
                         <div class="form-check mb-3">
-                            <input class="form-check-input" type="checkbox" id="checkCompliance">
+                            <input class="form-check-input checklist-item" type="checkbox" id="checkCompliance" data-checklist="compliance">
                             <label class="form-check-label" for="checkCompliance">
                                 Claim complies with department policies
                             </label>
                         </div>
                         <div class="form-check mb-3">
-                            <input class="form-check-input" type="checkbox" id="checkComplete">
+                            <input class="form-check-input checklist-item" type="checkbox" id="checkComplete" data-checklist="complete">
                             <label class="form-check-label" for="checkComplete">
                                 All information is complete and accurate
                             </label>
                         </div>
                     </div>
+                </div>
+                <div class="mt-3">
+                    <div class="progress" style="height: 10px;">
+                        <div class="progress-bar bg-success" role="progressbar" id="checklistProgress" style="width: 0%"></div>
+                    </div>
+                    <small class="text-muted" id="checklistStatus">0 of 6 items completed</small>
                 </div>
             </div>
         </div>
@@ -207,19 +234,35 @@
             </div>
             <div class="card-body">
                 <div class="timeline">
-                    @foreach (var audit in Model.AuditTrails.OrderByDescending(a => a.Timestamp))
+                    @if (Model.AuditTrails.Any())
                     {
-                        <div class="timeline-item">
-                            <div class="timeline-marker bg-@GetAuditColor(audit.Action)"></div>
-                            <div class="timeline-content">
-                                <div class="timeline-header">
-                                    <strong>@audit.Action</strong>
-                                    <span class="timeline-date">@audit.Timestamp.ToString("dd MMM yyyy HH:mm")</span>
-                                </div>
-                                <div class="timeline-body">
-                                    <small class="text-muted">By: @audit.User?.FullName</small>
+                        @foreach (var audit in Model.AuditTrails.OrderByDescending(a => a.Timestamp))
+                        {
+                            <div class="timeline-item">
+                                <div class="timeline-marker bg-@GetAuditColor(audit.Action)"></div>
+                                <div class="timeline-content">
+                                    <div class="timeline-header">
+                                        <strong>@audit.Action</strong>
+                                        <span class="timeline-date">@audit.Timestamp.ToString("dd MMM yyyy HH:mm")</span>
+                                    </div>
+                                    <div class="timeline-body">
+                                        <small class="text-muted">By: @audit.User?.FullName</small>
+                                        @if (!string.IsNullOrEmpty(audit.Description))
+                                        {
+                                            <div class="mt-1">
+                                                <small class="text-muted">@audit.Description</small>
+                                            </div>
+                                        }
+                                    </div>
                                 </div>
                             </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="text-center py-3">
+                            <i class="fas fa-info-circle fa-2x text-muted mb-2"></i>
+                            <p class="text-muted mb-0">No activity history available</p>
                         </div>
                     }
                 </div>
@@ -244,9 +287,9 @@
 
                 @if (Model.Status == "Pending" || Model.Status == "Revision Requested")
                 {
-                    <form method="post" asp-action="SetUnderReview">
+                    <form method="post" asp-action="SetUnderReview" class="mb-3">
                         <input type="hidden" name="claimId" value="@Model.ClaimID" />
-                        <button type="submit" class="btn btn-info w-100 mb-3">
+                        <button type="submit" class="btn btn-info w-100">
                             <i class="fas fa-search me-1"></i>Mark as Under Review
                         </button>
                     </form>
@@ -266,6 +309,28 @@
                     <div class="progress-bar bg-success" role="progressbar" style="width: @progress%"></div>
                 </div>
                 <small class="text-muted">Review Progress: @progress%</small>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="card coordinator-card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-bolt me-2"></i>Quick Actions
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post" asp-action="QuickApproveFromReview" class="mb-2">
+                    <input type="hidden" name="claimId" value="@Model.ClaimID" />
+                    <button type="submit" class="btn btn-success w-100"
+                            onclick="return confirm('Are you sure you want to approve this claim?')">
+                        <i class="fas fa-check me-1"></i>Approve Claim
+                    </button>
+                </form>
+
+                <button type="button" class="btn btn-danger w-100" data-bs-toggle="modal" data-bs-target="#quickRejectModal">
+                    <i class="fas fa-times me-1"></i>Reject Claim
+                </button>
             </div>
         </div>
 
@@ -422,6 +487,63 @@
     </div>
 </div>
 
+<!-- Verify All Documents Modal -->
+<div class="modal fade" id="verifyAllModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-check-double text-success me-2"></i>Verify All Documents
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" asp-action="VerifyAllDocuments">
+                <div class="modal-body">
+                    <input type="hidden" name="claimId" value="@Model.ClaimID">
+                    <div class="mb-3">
+                        <p>You are about to verify all <strong>@(Model.SupportingDocuments?.Count ?? 0)</strong> documents for this claim.</p>
+                        <label class="form-label">Verification Notes (Optional):</label>
+                        <textarea name="notes" class="form-control" rows="3"
+                                  placeholder="Add verification notes for all documents..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">Verify All Documents</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Reject Modal -->
+<div class="modal fade" id="quickRejectModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-times-circle text-danger me-2"></i>Reject Claim
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" asp-action="QuickRejectFromReview">
+                <div class="modal-body">
+                    <input type="hidden" name="claimId" value="@Model.ClaimID">
+                    <div class="mb-3">
+                        <label class="form-label">Rejection Reason *:</label>
+                        <textarea name="reason" class="form-control" rows="3" required
+                                  placeholder="Explain why this claim is being rejected..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">Reject Claim</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <script>
         $(document).ready(function() {
@@ -453,14 +575,42 @@
 
                 $('#revisionDocModal').modal('show');
             });
-        });
 
-        function verifyAllDocuments() {
-            if (confirm('Are you sure you want to mark all documents as verified?')) {
-                // This would typically make an API call to verify all documents
-                alert('All documents marked as verified!');
+            // Checklist functionality
+            function updateChecklistProgress() {
+                var totalItems = $('.checklist-item').length;
+                var completedItems = $('.checklist-item:checked').length;
+                var progress = (completedItems / totalItems) * 100;
+
+                $('#checklistProgress').css('width', progress + '%');
+                $('#checklistStatus').text(completedItems + ' of ' + totalItems + ' items completed');
+
+                // Enable/disable approve button based on checklist completion
+                var approveButton = $('button[type="submit"]').filter(function() {
+                    return $(this).text().includes('Approve');
+                });
+
+                if (completedItems === totalItems) {
+                    approveButton.removeClass('btn-secondary').addClass('btn-success');
+                } else {
+                    approveButton.removeClass('btn-success').addClass('btn-secondary');
+                }
             }
-        }
+
+            $('.checklist-item').change(updateChecklistProgress);
+            updateChecklistProgress(); // Initialize progress
+
+            // Auto-dismiss alerts after 5 seconds
+            setTimeout(function() {
+                $('.alert').alert('close');
+            }, 5000);
+
+            // Form validation
+            $('form').on('submit', function() {
+                var submitButton = $(this).find('button[type="submit"]');
+                submitButton.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i>Processing...');
+            });
+        });
     </script>
 }
 
@@ -545,6 +695,18 @@
 
     .table-hover tbody tr:hover {
         background-color: #f8f9fc;
+    }
+
+    .list-group-item {
+        transition: all 0.3s;
+    }
+
+        .list-group-item:hover {
+            background-color: #f8f9fa;
+        }
+
+    .btn-group .btn {
+        border-radius: 6px;
     }
 </style>
 

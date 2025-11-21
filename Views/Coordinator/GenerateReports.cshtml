@@ -3,6 +3,23 @@
     ViewData["Title"] = "Generate Reports";
 }
 
+<!-- Display Messages -->
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="fas fa-check-circle me-2"></i>@TempData["SuccessMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-circle me-2"></i>@TempData["ErrorMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
 <!-- Page Header -->
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
     <h1 class="h2">Generate Reports</h1>
@@ -10,6 +27,9 @@
         <div class="btn-group me-2">
             <button type="button" class="btn btn-sm btn-outline-secondary" onclick="window.print()">
                 <i class="fas fa-print me-1"></i>Print
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="refreshReport">
+                <i class="fas fa-sync-alt me-1"></i>Refresh
             </button>
         </div>
     </div>
@@ -19,15 +39,19 @@
 <div class="row mb-4">
     <div class="col-lg-8">
         <div class="card coordinator-card">
-            <div class="card-header bg-white">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
                 <h5 class="card-title mb-0"><i class="fas fa-cog me-2"></i>Report Configuration</h5>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="autoRefreshToggle" checked>
+                    <label class="form-check-label small" for="autoRefreshToggle">Auto-refresh</label>
+                </div>
             </div>
             <div class="card-body">
-                <form method="post" asp-action="GenerateReport">
+                <form method="post" asp-action="GenerateReport" id="reportForm">
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Report Type</label>
-                            <select class="form-select" name="ReportType">
+                            <select class="form-select" name="ReportType" id="reportType">
                                 <option value="Monthly" selected="@(Model.ReportType == "Monthly")">Monthly Report</option>
                                 <option value="Weekly" selected="@(Model.ReportType == "Weekly")">Weekly Report</option>
                                 <option value="Quarterly" selected="@(Model.ReportType == "Quarterly")">Quarterly Report</option>
@@ -36,7 +60,7 @@
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Department</label>
-                            <select class="form-select" name="Department">
+                            <select class="form-select" name="Department" id="department">
                                 @foreach (var dept in ViewBag.Departments)
                                 {
                                     <option value="@dept" selected="@(dept == Model.Department)">@dept</option>
@@ -48,19 +72,19 @@
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Start Date</label>
-                            <input type="date" class="form-control" name="StartDate" 
+                            <input type="date" class="form-control" name="StartDate" id="startDate"
                                    value="@Model.StartDate.ToString("yyyy-MM-dd")">
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">End Date</label>
-                            <input type="date" class="form-control" name="EndDate" 
+                            <input type="date" class="form-control" name="EndDate" id="endDate"
                                    value="@Model.EndDate.ToString("yyyy-MM-dd")">
                         </div>
                     </div>
 
                     <div class="row">
                         <div class="col-12">
-                            <button type="submit" class="btn btn-primary w-100">
+                            <button type="submit" class="btn btn-primary w-100" id="generateReportBtn">
                                 <i class="fas fa-chart-bar me-1"></i>Generate Report
                             </button>
                         </div>
@@ -71,23 +95,27 @@
     </div>
 
     <div class="col-lg-4">
-        <!-- Quick Actions -->
+        <!-- Quick Reports -->
         <div class="card coordinator-card mb-4">
             <div class="card-header bg-white">
                 <h6 class="card-title mb-0"><i class="fas fa-bolt me-2"></i>Quick Reports</h6>
             </div>
             <div class="card-body">
                 <div class="d-grid gap-2">
-                    <a href="@Url.Action("GenerateReports", new { reportType = "Monthly", startDate = DateTime.Now.AddDays(-30).ToString("yyyy-MM-dd"), endDate = DateTime.Now.ToString("yyyy-MM-dd") })" 
-                       class="btn btn-outline-primary text-start">
+                    <a href="@Url.Action("GenerateReports", new { reportType = "Weekly", startDate = DateTime.Now.AddDays(-7).ToString("yyyy-MM-dd"), endDate = DateTime.Now.ToString("yyyy-MM-dd") })"
+                       class="btn btn-outline-primary text-start quick-report-btn">
+                        <i class="fas fa-calendar-week me-2"></i>Last 7 Days
+                    </a>
+                    <a href="@Url.Action("GenerateReports", new { reportType = "Monthly", startDate = DateTime.Now.AddDays(-30).ToString("yyyy-MM-dd"), endDate = DateTime.Now.ToString("yyyy-MM-dd") })"
+                       class="btn btn-outline-primary text-start quick-report-btn">
                         <i class="fas fa-calendar-alt me-2"></i>Last 30 Days
                     </a>
-                    <a href="@Url.Action("GenerateReports", new { reportType = "Monthly", startDate = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1).ToString("yyyy-MM-dd"), endDate = DateTime.Now.ToString("yyyy-MM-dd") })" 
-                       class="btn btn-outline-primary text-start">
+                    <a href="@Url.Action("GenerateReports", new { reportType = "Monthly", startDate = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1).ToString("yyyy-MM-dd"), endDate = DateTime.Now.ToString("yyyy-MM-dd") })"
+                       class="btn btn-outline-primary text-start quick-report-btn">
                         <i class="fas fa-calendar me-2"></i>This Month
                     </a>
-                    <a href="@Url.Action("GenerateReports", new { reportType = "Quarterly", startDate = new DateTime(DateTime.Now.Year, 1, 1).ToString("yyyy-MM-dd"), endDate = DateTime.Now.ToString("yyyy-MM-dd") })" 
-                       class="btn btn-outline-primary text-start">
+                    <a href="@Url.Action("GenerateReports", new { reportType = "Quarterly", startDate = new DateTime(DateTime.Now.Year, 1, 1).ToString("yyyy-MM-dd"), endDate = DateTime.Now.ToString("yyyy-MM-dd") })"
+                       class="btn btn-outline-primary text-start quick-report-btn">
                         <i class="fas fa-chart-line me-2"></i>Year to Date
                     </a>
                 </div>
@@ -101,25 +129,54 @@
             </div>
             <div class="card-body">
                 <div class="d-grid gap-2">
-                    <a href="@Url.Action("ExportReport", new { 
-                        reportType = Model.ReportType, 
-                        startDate = Model.StartDate, 
-                        endDate = Model.EndDate, 
-                        department = Model.Department, 
-                        format = "PDF" 
-                    })" class="btn btn-danger">
+                    <button type="button" class="btn btn-danger" id="exportPdfBtn">
                         <i class="fas fa-file-pdf me-2"></i>Export as PDF
-                    </a>
-                    <a href="@Url.Action("ExportReport", new { 
-                        reportType = Model.ReportType, 
-                        startDate = Model.StartDate, 
-                        endDate = Model.EndDate, 
-                        department = Model.Department, 
-                        format = "Excel" 
-                    })" class="btn btn-success">
+                    </button>
+                    <button type="button" class="btn btn-success" id="exportExcelBtn">
                         <i class="fas fa-file-excel me-2"></i>Export as Excel
-                    </a>
+                    </button>
+                    <button type="button" class="btn btn-info" id="exportJsonBtn">
+                        <i class="fas fa-file-code me-2"></i>Export as JSON
+                    </button>
                 </div>
+            </div>
+        </div>
+
+        <!-- Report Info -->
+        <div class="card coordinator-card mt-4">
+            <div class="card-header bg-white">
+                <h6 class="card-title mb-0"><i class="fas fa-info-circle me-2"></i>Report Information</h6>
+            </div>
+            <div class="card-body">
+                <div class="small">
+                    <div class="mb-2">
+                        <strong>Date Range:</strong><br>
+                        @Model.StartDate.ToString("dd MMM yyyy") - @Model.EndDate.ToString("dd MMM yyyy")
+                    </div>
+                    <div class="mb-2">
+                        <strong>Department:</strong><br>
+                        @Model.Department
+                    </div>
+                    <div>
+                        <strong>Generated:</strong><br>
+                        @DateTime.Now.ToString("dd MMM yyyy HH:mm")
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Indicator -->
+<div class="row mb-4" id="loadingIndicator" style="display: none;">
+    <div class="col-12">
+        <div class="card coordinator-card">
+            <div class="card-body text-center py-4">
+                <div class="spinner-border text-primary mb-3" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <h5>Generating Report...</h5>
+                <p class="text-muted">Please wait while we process your data.</p>
             </div>
         </div>
     </div>
@@ -139,56 +196,62 @@
                             @(Model.Department != "All" ? $" | {Model.Department}" : "")
                         </small>
                     </h5>
-                    <div class="badge bg-primary">
-                        @Model.ReportType Report
+                    <div class="d-flex align-items-center">
+                        <span class="badge bg-primary me-2">
+                            @Model.ReportType Report
+                        </span>
+                        <span class="badge bg-secondary">
+                            <i class="fas fa-clock me-1"></i>
+                            <span id="lastUpdated">@DateTime.Now.ToString("HH:mm:ss")</span>
+                        </span>
                     </div>
                 </div>
                 <div class="card-body">
                     <div class="row text-center">
-                        <div class="col-md-2 col-6 mb-3">
-                            <div class="card bg-primary text-white">
+                        <div class="col-xl-2 col-md-4 col-6 mb-3">
+                            <div class="card bg-primary text-white h-100">
                                 <div class="card-body py-3">
-                                    <h4 class="mb-1">@Model.TotalClaims</h4>
+                                    <h3 class="mb-1">@Model.TotalClaims</h3>
                                     <small>Total Claims</small>
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-2 col-6 mb-3">
-                            <div class="card bg-success text-white">
+                        <div class="col-xl-2 col-md-4 col-6 mb-3">
+                            <div class="card bg-success text-white h-100">
                                 <div class="card-body py-3">
-                                    <h4 class="mb-1">@Model.ApprovedClaims</h4>
+                                    <h3 class="mb-1">@Model.ApprovedClaims</h3>
                                     <small>Approved</small>
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-2 col-6 mb-3">
-                            <div class="card bg-warning text-white">
+                        <div class="col-xl-2 col-md-4 col-6 mb-3">
+                            <div class="card bg-warning text-white h-100">
                                 <div class="card-body py-3">
-                                    <h4 class="mb-1">@Model.PendingClaims</h4>
+                                    <h3 class="mb-1">@Model.PendingClaims</h3>
                                     <small>Pending</small>
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-2 col-6 mb-3">
-                            <div class="card bg-danger text-white">
+                        <div class="col-xl-2 col-md-4 col-6 mb-3">
+                            <div class="card bg-danger text-white h-100">
                                 <div class="card-body py-3">
-                                    <h4 class="mb-1">@Model.RejectedClaims</h4>
+                                    <h3 class="mb-1">@Model.RejectedClaims</h3>
                                     <small>Rejected</small>
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-2 col-6 mb-3">
-                            <div class="card bg-info text-white">
+                        <div class="col-xl-2 col-md-4 col-6 mb-3">
+                            <div class="card bg-info text-white h-100">
                                 <div class="card-body py-3">
-                                    <h4 class="mb-1">@Model.UnderReviewClaims</h4>
+                                    <h3 class="mb-1">@Model.UnderReviewClaims</h3>
                                     <small>Under Review</small>
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-2 col-6 mb-3">
-                            <div class="card bg-secondary text-white">
+                        <div class="col-xl-2 col-md-4 col-6 mb-3">
+                            <div class="card bg-secondary text-white h-100">
                                 <div class="card-body py-3">
-                                    <h4 class="mb-1">@Model.TotalAmount.ToString("C")</h4>
+                                    <h3 class="mb-1">@Model.TotalAmount.ToString("C")</h3>
                                     <small>Total Amount</small>
                                 </div>
                             </div>
@@ -197,34 +260,87 @@
 
                     <!-- Performance Metrics -->
                     <div class="row mt-4">
-                        <div class="col-md-4">
-                            <div class="card">
+                        <div class="col-md-3 mb-3">
+                            <div class="card border-0 shadow-sm h-100">
                                 <div class="card-body text-center">
                                     <i class="fas fa-clock fa-2x text-info mb-2"></i>
-                                    <h5>@Model.AverageProcessingTime.ToString("F1") days</h5>
+                                    <h4>@Model.AverageProcessingTime.ToString("F1") days</h4>
                                     <small class="text-muted">Avg. Processing Time</small>
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-4">
-                            <div class="card">
+                        <div class="col-md-3 mb-3">
+                            <div class="card border-0 shadow-sm h-100">
                                 <div class="card-body text-center">
                                     <i class="fas fa-percentage fa-2x text-success mb-2"></i>
-                                    <h5>@Model.ApprovalRate.ToString("F1")%</h5>
+                                    <h4>@Model.ApprovalRate.ToString("F1")%</h4>
                                     <small class="text-muted">Approval Rate</small>
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-4">
-                            <div class="card">
+                        <div class="col-md-3 mb-3">
+                            <div class="card border-0 shadow-sm h-100">
                                 <div class="card-body text-center">
                                     <i class="fas fa-dollar-sign fa-2x text-warning mb-2"></i>
-                                    <h5>@Model.AverageClaimAmount.ToString("C")</h5>
+                                    <h4>@Model.AverageClaimAmount.ToString("C")</h4>
                                     <small class="text-muted">Avg. Claim Amount</small>
                                 </div>
                             </div>
                         </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card border-0 shadow-sm h-100">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-file-invoice-dollar fa-2x text-primary mb-2"></i>
+                                    <h4>@Model.Claims.Count(c => c.SupportingDocuments?.Any() == true)</h4>
+                                    <small class="text-muted">Claims with Documents</small>
+                                </div>
+                            </div>
+                        </div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Section -->
+    <div class="row mb-4">
+        <div class="col-lg-6 mb-4">
+            <div class="card coordinator-card h-100">
+                <div class="card-header bg-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-pie me-2"></i>Claims Status Distribution
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="statusChart" height="250"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6 mb-4">
+            <div class="card coordinator-card h-100">
+                <div class="card-header bg-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-line me-2"></i>Monthly Trends
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="trendsChart" height="250"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Department Distribution -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card coordinator-card">
+                <div class="card-header bg-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-building me-2"></i>Department Distribution
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="departmentChart" height="150"></canvas>
                 </div>
             </div>
         </div>
@@ -239,12 +355,32 @@
                         <i class="fas fa-list me-2"></i>Detailed Claims Data
                         <span class="badge bg-primary ms-2">@Model.Claims.Count claims</span>
                     </h5>
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="exportTableBtn">
+                            <i class="fas fa-download me-1"></i>Export Table
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="toggleSearchBtn">
+                            <i class="fas fa-search me-1"></i>Search
+                        </button>
+                    </div>
                 </div>
                 <div class="card-body">
+                    <!-- Search Box -->
+                    <div class="row mb-3" id="searchBox" style="display: none;">
+                        <div class="col-12">
+                            <div class="input-group">
+                                <input type="text" class="form-control" placeholder="Search claims..." id="tableSearch">
+                                <button class="btn btn-outline-secondary" type="button" id="clearSearch">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
                     @if (Model.Claims.Any())
                     {
                         <div class="table-responsive">
-                            <table class="table table-hover">
+                            <table class="table table-hover" id="claimsTable">
                                 <thead class="table-light">
                                     <tr>
                                         <th>Claim ID</th>
@@ -255,6 +391,7 @@
                                         <th>Status</th>
                                         <th>Submitted</th>
                                         <th>Documents</th>
+                                        <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -282,10 +419,31 @@
                                                     <span class="badge bg-warning">0</span>
                                                 }
                                             </td>
+                                            <td>
+                                                <a href="@Url.Action("ReviewClaim", new { id = claim.ClaimID })"
+                                                   class="btn btn-sm btn-outline-primary" title="View Details">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                            </td>
                                         </tr>
                                     }
                                 </tbody>
                             </table>
+                        </div>
+
+                        <!-- Table Summary -->
+                        <div class="row mt-3">
+                            <div class="col-md-6">
+                                <small class="text-muted">
+                                    Showing @Model.Claims.Count claims •
+                                    Total Approved Amount: <strong>@Model.TotalAmount.ToString("C")</strong>
+                                </small>
+                            </div>
+                            <div class="col-md-6 text-end">
+                                <small class="text-muted" id="tableSummary">
+                                    @Model.ApprovedClaims approved • @Model.PendingClaims pending • @Model.RejectedClaims rejected
+                                </small>
+                            </div>
                         </div>
                     }
                     else
@@ -305,12 +463,334 @@ else
 {
     <div class="row">
         <div class="col-12">
-            <div class="alert alert-info">
-                <i class="fas fa-info-circle me-2"></i>
-                Configure your report settings above and click "Generate Report" to view data.
+            <div class="card coordinator-card">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-chart-bar fa-4x text-muted mb-3"></i>
+                    <h4 class="text-muted">Ready to Generate Reports</h4>
+                    <p class="text-muted mb-4">Configure your report settings above and click "Generate Report" to view data.</p>
+                    <button type="button" class="btn btn-primary" onclick="generateSampleReport()">
+                        <i class="fas fa-magic me-1"></i>Generate Sample Report
+                    </button>
+                </div>
             </div>
         </div>
     </div>
+}
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Chart instances
+        let statusChart, trendsChart, departmentChart;
+
+        $(document).ready(function() {
+            // Initialize charts if data exists
+            @if (Model.Claims != null && Model.Claims.Any())
+            {
+                    <text>
+                    initializeCharts();
+                    </text>
+            }
+
+            // Report type change handler
+            $('#reportType').change(function() {
+                updateDateRange();
+            });
+
+            // Generate report button handler
+            $('#generateReportBtn').click(function(e) {
+                e.preventDefault();
+                generateReport();
+            });
+
+            // Export buttons
+            $('#exportPdfBtn').click(function() {
+                exportReport('PDF');
+            });
+
+            $('#exportExcelBtn').click(function() {
+                exportReport('Excel');
+            });
+
+            $('#exportJsonBtn').click(function() {
+                exportReport('JSON');
+            });
+
+            // Refresh report
+            $('#refreshReport').click(function() {
+                generateReport();
+            });
+
+            // Table search functionality
+            $('#toggleSearchBtn').click(function() {
+                $('#searchBox').toggle();
+            });
+
+            $('#tableSearch').on('input', function() {
+                const searchText = $(this).val().toLowerCase();
+                $('#claimsTable tbody tr').each(function() {
+                    const rowText = $(this).text().toLowerCase();
+                    $(this).toggle(rowText.includes(searchText));
+                });
+            });
+
+            $('#clearSearch').click(function() {
+                $('#tableSearch').val('').trigger('input');
+            });
+
+            // Auto-refresh functionality
+            let autoRefreshInterval;
+            $('#autoRefreshToggle').change(function() {
+                if (this.checked) {
+                    autoRefreshInterval = setInterval(updateReportData, 30000); // 30 seconds
+                } else {
+                    clearInterval(autoRefreshInterval);
+                }
+            });
+
+            // Initialize auto-refresh if enabled
+            if ($('#autoRefreshToggle').is(':checked')) {
+                autoRefreshInterval = setInterval(updateReportData, 30000);
+            }
+
+            // Export table data
+            $('#exportTableBtn').click(function() {
+                exportTableToCSV();
+            });
+        });
+
+        function updateDateRange() {
+            const reportType = $('#reportType').val();
+            const now = new Date();
+            let startDate, endDate;
+
+            switch (reportType) {
+                case 'Weekly':
+                    startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                    break;
+                case 'Monthly':
+                    startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+                    break;
+                case 'Quarterly':
+                    const quarter = Math.floor(now.getMonth() / 3);
+                    startDate = new Date(now.getFullYear(), quarter * 3, 1);
+                    break;
+                case 'Custom':
+                    startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+                    break;
+            }
+
+            endDate = now;
+
+            $('#startDate').val(formatDate(startDate));
+            $('#endDate').val(formatDate(endDate));
+        }
+
+        function formatDate(date) {
+            return date.toISOString().split('T')[0];
+        }
+
+        function generateReport() {
+            $('#loadingIndicator').show();
+            $('#generateReportBtn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i>Generating...');
+
+            $('#reportForm').submit();
+        }
+
+        function exportReport(format) {
+            const reportType = $('#reportType').val();
+            const startDate = $('#startDate').val();
+            const endDate = $('#endDate').val();
+            const department = $('#department').val();
+
+            let url = '';
+            if (format === 'JSON') {
+                url = '@Url.Action("GetReportData")' +
+                      `?reportType=${reportType}&startDate=${startDate}&endDate=${endDate}&department=${department}`;
+
+                // For JSON, download directly
+                window.location.href = url;
+            } else {
+                url = '@Url.Action("ExportReport")' +
+                      `?reportType=${reportType}&startDate=${startDate}&endDate=${endDate}&department=${department}&format=${format}`;
+
+                window.open(url, '_blank');
+            }
+        }
+
+        function updateReportData() {
+            const reportType = $('#reportType').val();
+            const startDate = $('#startDate').val();
+            const endDate = $('#endDate').val();
+            const department = $('#department').val();
+
+            $.get('@Url.Action("GetReportData")', {
+                reportType: reportType,
+                startDate: startDate,
+                endDate: endDate,
+                department: department
+            }, function(data) {
+                if (data.success) {
+                    updateCharts(data.data);
+                    $('#lastUpdated').text(new Date().toLocaleTimeString());
+                }
+            });
+        }
+
+        function initializeCharts() {
+            // Status Distribution Chart
+            const statusCtx = document.getElementById('statusChart').getContext('2d');
+            statusChart = new Chart(statusCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Approved', 'Pending', 'Under Review', 'Rejected', 'Revision Requested'],
+                    datasets: [{
+                        data: [@Model.ApprovedClaims, @Model.PendingClaims, @Model.UnderReviewClaims, @Model.RejectedClaims, @Model.Claims.Count(c => c.Status == "Revision Requested")],
+                        backgroundColor: ['#28a745', '#ffc107', '#17a2b8', '#dc3545', '#6c757d'],
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.raw || 0;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = Math.round((value / total) * 100);
+                                    return `${label}: ${value} (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Sample trends chart - you would replace this with actual data from your controller
+            const trendsCtx = document.getElementById('trendsChart').getContext('2d');
+            trendsChart = new Chart(trendsCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                    datasets: [{
+                        label: 'Approved Claims',
+                        data: [12, 19, 15, 25, 22, 30],
+                        borderColor: '#28a745',
+                        backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }, {
+                        label: 'Total Claims',
+                        data: [15, 22, 18, 28, 25, 35],
+                        borderColor: '#007bff',
+                        backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+
+            // Department distribution chart
+            const deptCtx = document.getElementById('departmentChart').getContext('2d');
+            departmentChart = new Chart(deptCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Computer Science', 'Mathematics', 'Physics', 'Chemistry', 'Biology'],
+                    datasets: [{
+                        label: 'Number of Claims',
+                        data: [25, 18, 12, 8, 6],
+                        backgroundColor: '#007bff',
+                        borderColor: '#0056b3',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateCharts(chartData) {
+            // Update charts with new data
+            if (statusChart && chartData.statusDistribution) {
+                statusChart.data.datasets[0].data = chartData.statusDistribution.data;
+                statusChart.update();
+            }
+            // Similarly update other charts...
+        }
+
+        function exportTableToCSV() {
+            const table = document.getElementById('claimsTable');
+            const rows = table.querySelectorAll('tr');
+            let csv = [];
+
+            for (let i = 0; i < rows.length; i++) {
+                const row = [], cols = rows[i].querySelectorAll('td, th');
+
+                for (let j = 0; j < cols.length; j++) {
+                    // Skip action column
+                    if (j === cols.length - 1) continue;
+
+                    let data = cols[j].innerText.replace(/(\r\n|\n|\r)/gm, '').replace(/(\s\s)/gm, ' ');
+                    data = data.replace(/"/g, '""');
+                    row.push('"' + data + '"');
+                }
+
+                csv.push(row.join(','));
+            }
+
+            const csvString = csv.join('\n');
+            const blob = new Blob([csvString], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+
+            a.setAttribute('hidden', '');
+            a.setAttribute('href', url);
+            a.setAttribute('download', 'claims_report.csv');
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        function generateSampleReport() {
+            // This would typically make an AJAX call to generate sample data
+            alert('Sample report generation would be implemented here. This would populate the page with sample data for demonstration.');
+        }
+
+        // Auto-dismiss alerts
+        setTimeout(function() {
+            $('.alert').alert('close');
+        }, 5000);
+    </script>
 }
 
 <style>
@@ -319,25 +799,24 @@ else
         border-radius: 10px;
         box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
         margin-bottom: 1.5rem;
-    }
-
-    .coordinator-card .card-header {
-        background: #fff;
-        border-bottom: 1px solid #e3e6f0;
-        font-weight: 600;
-        padding: 1rem 1.35rem;
-    }
-
-    .coordinator-card .card-body {
-        padding: 1.35rem;
-    }
-
-    .card {
         transition: transform 0.2s;
     }
-    .card:hover {
-        transform: translateY(-2px);
-    }
+
+        .coordinator-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .coordinator-card .card-header {
+            background: #fff;
+            border-bottom: 1px solid #e3e6f0;
+            font-weight: 600;
+            padding: 1rem 1.35rem;
+        }
+
+        .coordinator-card .card-body {
+            padding: 1.35rem;
+        }
+
     .table th {
         border-top: none;
         font-weight: 600;
@@ -347,6 +826,42 @@ else
 
     .table-hover tbody tr:hover {
         background-color: #f8f9fc;
+    }
+
+    .quick-report-btn {
+        transition: all 0.3s;
+    }
+
+        .quick-report-btn:hover {
+            transform: translateX(5px);
+        }
+
+    .card {
+        transition: transform 0.2s;
+    }
+
+    .spinner-border {
+        width: 3rem;
+        height: 3rem;
+    }
+
+    #loadingIndicator {
+        animation: fadeIn 0.3s ease;
+    }
+
+    @@keyframes fadeIn {
+        from {
+            opacity: 0;
+        }
+
+        to {
+            opacity: 1;
+        }
+    }
+
+    .badge {
+        font-size: 0.75rem;
+        padding: 0.35em 0.65em;
     }
 </style>
 
