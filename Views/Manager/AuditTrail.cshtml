@@ -8,42 +8,161 @@
     <h1 class="h2">Audit Trail</h1>
     <div class="btn-toolbar mb-2 mb-md-0">
         <div class="btn-group me-2">
-            <a href="@Url.Action("ExportReports")" class="btn btn-sm btn-outline-primary">
-                <i class="fas fa-download me-1"></i>Export Audit
-            </a>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="refreshBtn">
+                <i class="fas fa-sync-alt me-1"></i>Refresh
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-primary" id="exportBtn">
+                <i class="fas fa-download me-1"></i>Export
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-info" id="analyticsBtn">
+                <i class="fas fa-chart-bar me-1"></i>Analytics
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Date Range Filters -->
+<div class="row mb-3">
+    <div class="col-12">
+        <div class="btn-group w-100" role="group">
+            <button type="button" class="btn btn-outline-primary quick-date" data-days="1">Today</button>
+            <button type="button" class="btn btn-outline-primary quick-date" data-days="7">Last 7 Days</button>
+            <button type="button" class="btn btn-outline-primary quick-date" data-days="30">Last 30 Days</button>
+            <button type="button" class="btn btn-outline-primary quick-date" data-days="90">Last 90 Days</button>
+            <button type="button" class="btn btn-outline-primary" id="clearQuickFilters">Clear</button>
         </div>
     </div>
 </div>
 
 <!-- Filter Section -->
 <div class="card manager-card mb-4">
+    <div class="card-header bg-white">
+        <h5 class="card-title mb-0"><i class="fas fa-filter me-2"></i>Advanced Filters</h5>
+    </div>
     <div class="card-body">
-        <form method="get" asp-action="AuditTrail" class="row g-3">
+        <form method="get" asp-action="AuditTrail" id="filterForm" class="row g-3">
             <div class="col-md-3">
                 <label for="startDate" class="form-label">Start Date</label>
-                <input type="date" class="form-control" id="startDate" name="startDate" 
+                <input type="date" class="form-control" id="startDate" name="startDate"
                        value="@ViewBag.StartDate.ToString("yyyy-MM-dd")">
             </div>
             <div class="col-md-3">
                 <label for="endDate" class="form-label">End Date</label>
-                <input type="date" class="form-control" id="endDate" name="endDate" 
+                <input type="date" class="form-control" id="endDate" name="endDate"
                        value="@ViewBag.EndDate.ToString("yyyy-MM-dd")">
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label for="actionFilter" class="form-label">Action Type</label>
                 <select class="form-select" id="actionFilter" name="actionFilter">
+                    <option value="All">All Actions</option>
                     @foreach (var actionType in ViewBag.ActionTypes)
                     {
-                        <option value="@actionType" selected="@(actionType == ViewBag.ActionFilter)">@actionType</option>
+                        if (actionType != "All")
+                        {
+                            <option value="@actionType" selected="@(actionType == ViewBag.ActionFilter)">@actionType</option>
+                        }
                     }
                 </select>
             </div>
-            <div class="col-md-3 d-flex align-items-end">
-                <button type="submit" class="btn btn-primary w-100">
-                    <i class="fas fa-filter me-1"></i>Apply Filters
-                </button>
+            <div class="col-md-2">
+                <label for="userFilter" class="form-label">User Role</label>
+                <select class="form-select" id="userFilter" name="userFilter">
+                    <option value="All">All Users</option>
+                    <option value="Lecturer">Lecturer</option>
+                    <option value="Coordinator">Coordinator</option>
+                    <option value="Manager">Manager</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="searchTerm" class="form-label">Search</label>
+                <input type="text" class="form-control" id="searchTerm" name="searchTerm"
+                       placeholder="Search actions..." value="@ViewBag.SearchTerm">
+            </div>
+            <div class="col-12">
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-filter me-1"></i>Apply Filters
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" id="resetFilters">
+                        <i class="fas fa-times me-1"></i>Reset
+                    </button>
+                    <button type="button" class="btn btn-outline-info ms-auto" id="toggleAdvancedFilters">
+                        <i class="fas fa-cogs me-1"></i>Advanced Options
+                    </button>
+                </div>
+            </div>
+
+            <!-- Advanced Filters -->
+            <div class="col-12 mt-3" id="advancedFilters" style="display: none;">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Action Categories</label>
+                        <div class="form-check">
+                            <input class="form-check-input action-category" type="checkbox" value="Approved" id="catApproved" checked>
+                            <label class="form-check-label" for="catApproved">
+                                <span class="badge bg-success">Approvals</span>
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input action-category" type="checkbox" value="Rejected" id="catRejected" checked>
+                            <label class="form-check-label" for="catRejected">
+                                <span class="badge bg-danger">Rejections</span>
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input action-category" type="checkbox" value="Submitted" id="catSubmitted" checked>
+                            <label class="form-check-label" for="catSubmitted">
+                                <span class="badge bg-primary">Submissions</span>
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input action-category" type="checkbox" value="Uploaded" id="catUploaded" checked>
+                            <label class="form-check-label" for="catUploaded">
+                                <span class="badge bg-info">Document Uploads</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Time Range</label>
+                        <div class="btn-group-vertical w-100">
+                            <button type="button" class="btn btn-outline-secondary time-range" data-hours="1">Last Hour</button>
+                            <button type="button" class="btn btn-outline-secondary time-range" data-hours="4">Last 4 Hours</button>
+                            <button type="button" class="btn btn-outline-secondary time-range" data-hours="24">Last 24 Hours</button>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Export Options</label>
+                        <div class="d-grid gap-2">
+                            <button type="button" class="btn btn-outline-success" id="exportCSV">
+                                <i class="fas fa-file-csv me-1"></i>Export CSV
+                            </button>
+                            <button type="button" class="btn btn-outline-danger" id="exportPDF">
+                                <i class="fas fa-file-pdf me-1"></i>Export PDF
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </form>
+    </div>
+</div>
+
+<!-- Real-time Activity Monitor -->
+<div class="card manager-card mb-4" id="realtimeMonitor">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">
+            <i class="fas fa-broadcast-tower me-2 text-success"></i>Real-time Activity Monitor
+            <span class="badge bg-success ms-2" id="realtimeCount">0</span>
+        </h5>
+        <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" id="realtimeToggle" checked>
+            <label class="form-check-label small" for="realtimeToggle">Live Updates</label>
+        </div>
+    </div>
+    <div class="card-body">
+        <div id="realtimeActivities" class="realtime-feed">
+            <!-- Real-time activities will appear here -->
+        </div>
     </div>
 </div>
 
@@ -54,6 +173,9 @@
             <div class="card-body text-center">
                 <div class="h4 mb-0 fw-bold text-primary">@Model.Count</div>
                 <small class="text-muted">Total Actions</small>
+                <div class="mt-2">
+                    <small class="text-success" id="todayCount">Today: 0</small>
+                </div>
             </div>
         </div>
     </div>
@@ -62,6 +184,9 @@
             <div class="card-body text-center">
                 <div class="h4 mb-0 fw-bold text-success">@Model.Count(a => a.Action.Contains("Approved"))</div>
                 <small class="text-muted">Approvals</small>
+                <div class="mt-2">
+                    <small class="text-muted" id="approvalRate">Rate: 0%</small>
+                </div>
             </div>
         </div>
     </div>
@@ -70,6 +195,9 @@
             <div class="card-body text-center">
                 <div class="h4 mb-0 fw-bold text-danger">@Model.Count(a => a.Action.Contains("Rejected"))</div>
                 <small class="text-muted">Rejections</small>
+                <div class="mt-2">
+                    <small class="text-muted" id="rejectionRate">Rate: 0%</small>
+                </div>
             </div>
         </div>
     </div>
@@ -78,6 +206,9 @@
             <div class="card-body text-center">
                 <div class="h4 mb-0 fw-bold text-info">@Model.Count(a => a.Action.Contains("Submitted"))</div>
                 <small class="text-muted">Submissions</small>
+                <div class="mt-2">
+                    <small class="text-muted">Avg: <span id="avgSubmissionTime">0h</span></small>
+                </div>
             </div>
         </div>
     </div>
@@ -86,121 +217,675 @@
             <div class="card-body text-center">
                 <div class="h4 mb-0 fw-bold text-warning">@Model.Count(a => a.Action.Contains("Uploaded"))</div>
                 <small class="text-muted">Document Uploads</small>
+                <div class="mt-2">
+                    <small class="text-muted" id="uploadsToday">Today: 0</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-2 col-md-4 mb-3">
+        <div class="card manager-card border-start border-secondary border-4">
+            <div class="card-body text-center">
+                <div class="h4 mb-0 fw-bold text-secondary" id="activeUsers">0</div>
+                <small class="text-muted">Active Users</small>
+                <div class="mt-2">
+                    <small class="text-muted" id="userDistribution">-</small>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Audit Trail Table -->
-<div class="card manager-card">
+<!-- Activity Timeline View -->
+<div class="card manager-card mb-4" id="timelineView">
     <div class="card-header bg-white d-flex justify-content-between align-items-center">
         <h5 class="card-title mb-0">
-            <i class="fas fa-history me-2 text-info"></i>System Audit Trail
+            <i class="fas fa-stream me-2 text-info"></i>Activity Timeline
         </h5>
-        <small class="text-muted">
-            Showing @Model.Count actions from @ViewBag.StartDate.ToString("dd MMM yyyy") to @ViewBag.EndDate.ToString("dd MMM yyyy")
-        </small>
+        <div class="btn-group">
+            <button type="button" class="btn btn-sm btn-outline-secondary active" data-view="table">
+                <i class="fas fa-table me-1"></i>Table
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" data-view="timeline">
+                <i class="fas fa-stream me-1"></i>Timeline
+            </button>
+        </div>
     </div>
     <div class="card-body">
-        @if (Model != null && Model.Any())
-        {
-            <div class="table-responsive">
-                <table class="table table-hover" id="auditTable">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Timestamp</th>
-                            <th>User</th>
-                            <th>Action</th>
-                            <th>Claim ID</th>
-                            <th>Lecturer</th>
-                            <th>Department</th>
-                            <th>Details</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var audit in Model)
-                        {
+        <!-- Timeline View (Hidden by default) -->
+        <div id="timelineContainer" style="display: none;">
+            <div class="timeline" id="activityTimeline">
+                @foreach (var audit in Model.Take(20))
+                {
+                    <div class="timeline-item">
+                        <div class="timeline-marker bg-@GetAuditColor(audit.Action)"></div>
+                        <div class="timeline-content">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <strong>@audit.Action</strong>
+                                    <div class="text-muted small">
+                                        By @audit.User?.FullName • Claim #@audit.ClaimID
+                                    </div>
+                                </div>
+                                <div class="text-end">
+                                    <div class="fw-bold">@audit.Timestamp.ToString("HH:mm")</div>
+                                    <small class="text-muted">@audit.Timestamp.ToString("dd MMM")</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Table View (Default) -->
+        <div id="tableView">
+            @if (Model != null && Model.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover" id="auditTable">
+                        <thead class="table-light">
                             <tr>
-                                <td>
-                                    <div class="text-nowrap">
-                                        <div class="fw-bold">@audit.Timestamp.ToString("dd MMM yyyy")</div>
-                                        <small class="text-muted">@audit.Timestamp.ToString("HH:mm:ss")</small>
-                                    </div>
-                                </td>
-                                <td>
-                                    <div class="d-flex align-items-center">
-                                        <div class="avatar-sm bg-primary rounded-circle me-2 d-flex align-items-center justify-content-center">
-                                            <i class="fas fa-user text-white"></i>
-                                        </div>
-                                        <div>
-                                            <div class="fw-bold">@audit.User?.FullName</div>
-                                            <small class="text-muted">@audit.User?.Role</small>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>
-                                    @if (audit.Action.Contains("Approved"))
-                                    {
-                                        <span class="badge bg-success"><i class="fas fa-check me-1"></i>@audit.Action</span>
-                                    }
-                                    else if (audit.Action.Contains("Rejected"))
-                                    {
-                                        <span class="badge bg-danger"><i class="fas fa-times me-1"></i>@audit.Action</span>
-                                    }
-                                    else if (audit.Action.Contains("Submitted"))
-                                    {
-                                        <span class="badge bg-primary"><i class="fas fa-paper-plane me-1"></i>@audit.Action</span>
-                                    }
-                                    else if (audit.Action.Contains("Uploaded"))
-                                    {
-                                        <span class="badge bg-info"><i class="fas fa-upload me-1"></i>@audit.Action</span>
-                                    }
-                                    else
-                                    {
-                                        <span class="badge bg-secondary">@audit.Action</span>
-                                    }
-                                </td>
-                                <td>
-                                    <a href="@Url.Action("ClaimAnalysis", new { id = audit.ClaimID })" 
-                                       class="btn btn-sm btn-outline-primary">
-                                        #@audit.ClaimID
-                                    </a>
-                                </td>
-                                <td>@audit.Claim?.Lecturer?.Name</td>
-                                <td>@audit.Claim?.Lecturer?.Department</td>
-                                <td>
-                                    <small class="text-muted">@audit.Action</small>
-                                </td>
+                                <th width="50">
+                                    <input type="checkbox" id="selectAllAudits">
+                                </th>
+                                <th>Timestamp</th>
+                                <th>User</th>
+                                <th>Action</th>
+                                <th>Claim ID</th>
+                                <th>Lecturer</th>
+                                <th>Department</th>
+                                <th>Details</th>
+                                <th width="100">Actions</th>
                             </tr>
-                        }
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            @foreach (var audit in Model)
+                            {
+                                <tr data-action-type="@GetActionType(audit.Action)" data-user-role="@audit.User?.Role">
+                                    <td>
+                                        <input type="checkbox" class="audit-checkbox" value="@audit.AuditTrailID">
+                                    </td>
+                                    <td>
+                                        <div class="text-nowrap">
+                                            <div class="fw-bold">@audit.Timestamp.ToString("dd MMM yyyy")</div>
+                                            <small class="text-muted">@audit.Timestamp.ToString("HH:mm:ss")</small>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="avatar-sm bg-@GetUserRoleColor(audit.User?.Role) rounded-circle me-2 d-flex align-items-center justify-content-center">
+                                                <i class="fas fa-user text-white"></i>
+                                            </div>
+                                            <div>
+                                                <div class="fw-bold">@audit.User?.FullName</div>
+                                                <small class="text-muted">@audit.User?.Role</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge @GetActionBadgeClass(audit.Action)">
+                                            <i class="@GetActionIcon(audit.Action) me-1"></i>@GetActionDisplay(audit.Action)
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <a href="@Url.Action("ClaimAnalysis", new { id = audit.ClaimID })"
+                                           class="btn btn-sm btn-outline-primary">
+                                            #@audit.ClaimID
+                                        </a>
+                                    </td>
+                                    <td>@audit.Claim?.Lecturer?.Name</td>
+                                    <td>@audit.Claim?.Lecturer?.Department</td>
+                                    <td>
+                                        <small class="text-muted" title="@audit.Action">@Truncate(audit.Action, 50)</small>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <button type="button" class="btn btn-outline-info view-audit-details"
+                                                    data-audit-id="@audit.AuditTrailID"
+                                                    title="View Details">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-   -secondary copy-audit"
+                                                    data-audit-text="@audit.Action"
+                                                    title="Copy Action">
+                                                <i class="fas fa-copy"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Bulk Actions -->
+                <div class="row mt-3" id="bulkActions" style="display: none;">
+                    <div class="col-12">
+                        <div class="card bg-light">
+                            <div class="card-body py-2">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <i class="fas fa-bolt text-warning me-2"></i>
+                                        <strong id="selectedAuditsCount">0</strong> audits selected
+                                    </div>
+                                    <div class="btn-group">
+                                        <button type="button" class="btn btn-sm btn-outline-danger" id="deleteSelectedAudits">
+                                            <i class="fas fa-trash me-1"></i>Delete Selected
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-outline-primary" id="exportSelectedAudits">
+                                            <i class="fas fa-download me-1"></i>Export Selected
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="text-center py-5">
+                    <i class="fas fa-search fa-4x text-muted mb-3"></i>
+                    <h4 class="text-muted">No Audit Records Found</h4>
+                    <p class="text-muted">No audit trail records match the current filter criteria.</p>
+                    <a href="@Url.Action("AuditTrail")" class="btn btn-primary">
+                        <i class="fas fa-refresh me-1"></i>Clear Filters
+                    </a>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Audit Details Modal -->
+<div class="modal fade" id="auditDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Audit Trail Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-        }
-        else
-        {
-            <div class="text-center py-5">
-                <i class="fas fa-search fa-4x text-muted mb-3"></i>
-                <h4 class="text-muted">No Audit Records Found</h4>
-                <p class="text-muted">No audit trail records match the current filter criteria.</p>
-                <a href="@Url.Action("AuditTrail")" class="btn btn-primary">
-                    <i class="fas fa-refresh me-1"></i>Clear Filters
-                </a>
+            <div class="modal-body" id="auditDetailsContent">
+                <!-- Details will be loaded here -->
             </div>
-        }
+        </div>
+    </div>
+</div>
+
+<!-- Analytics Modal -->
+<div class="modal fade" id="analyticsModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-chart-bar me-2"></i>Audit Trail Analytics</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="mb-0">Activity Over Time</h6>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="activityOverTimeChart" height="250"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="mb-0">User Activity Distribution</h6>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="userActivityChart" height="250"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mt-4">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="mb-0">Action Type Distribution</h6>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="actionTypeChart" height="250"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="mb-0">Department Activity</h6>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="departmentActivityChart" height="250"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
 @section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         $(document).ready(function() {
-            $('#auditTable').DataTable({
+            // Initialize DataTable with enhanced features
+            const auditTable = $('#auditTable').DataTable({
                 pageLength: 50,
-                order: [[0, 'desc']],
+                order: [[1, 'desc']],
                 language: {
-                    search: "Search audit trail:"
+                    search: "Search audit trail:",
+                    lengthMenu: "Show _MENU_ records"
+                },
+                dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>rt<"row"<"col-sm-12 col-md-6"i><"col-sm-12 col-md-6"p>>',
+                columnDefs: [
+                    { orderable: false, targets: [0, 8] }
+                ]
+            });
+
+            // Calculate and display statistics
+            calculateStatistics();
+
+            // Quick date range filters
+            $('.quick-date').click(function() {
+                const days = $(this).data('days');
+                const endDate = new Date();
+                const startDate = new Date();
+                startDate.setDate(startDate.getDate() - days);
+
+                $('#startDate').val(startDate.toISOString().split('T')[0]);
+                $('#endDate').val(endDate.toISOString().split('T')[0]);
+                $('#filterForm').submit();
+            });
+
+            // Clear quick filters
+            $('#clearQuickFilters').click(function() {
+                $('#startDate').val('@DateTime.Now.AddDays(-30).ToString("yyyy-MM-dd")');
+                $('#endDate').val('@DateTime.Now.ToString("yyyy-MM-dd")');
+                $('#filterForm').submit();
+            });
+
+            // Reset all filters
+            $('#resetFilters').click(function() {
+                $('#startDate').val('@DateTime.Now.AddDays(-30).ToString("yyyy-MM-dd")');
+                $('#endDate').val('@DateTime.Now.ToString("yyyy-MM-dd")');
+                $('#actionFilter').val('All');
+                $('#userFilter').val('All');
+                $('#searchTerm').val('');
+                $('#filterForm').submit();
+            });
+
+            // Toggle advanced filters
+            $('#toggleAdvancedFilters').click(function() {
+                $('#advancedFilters').slideToggle();
+                $(this).find('i').toggleClass('fa-cogs fa-times');
+            });
+
+            // Time range filters
+            $('.time-range').click(function() {
+                const hours = $(this).data('hours');
+                const endDate = new Date();
+                const startDate = new Date();
+                startDate.setHours(startDate.getHours() - hours);
+
+                $('#startDate').val(startDate.toISOString().split('T')[0]);
+                $('#endDate').val(endDate.toISOString().split('T')[0]);
+                $('#filterForm').submit();
+            });
+
+            // View toggle
+            $('[data-view]').click(function() {
+                const view = $(this).data('view');
+                $('[data-view]').removeClass('active');
+                $(this).addClass('active');
+
+                if (view === 'timeline') {
+                    $('#tableView').hide();
+                    $('#timelineContainer').show();
+                } else {
+                    $('#timelineContainer').hide();
+                    $('#tableView').show();
                 }
             });
+
+            // Refresh button
+            $('#refreshBtn').click(function() {
+                const $btn = $(this);
+                $btn.find('i').addClass('fa-spin');
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
+            });
+
+            // Analytics button
+            $('#analyticsBtn').click(function() {
+                generateAnalytics();
+                $('#analyticsModal').modal('show');
+            });
+
+            // Export functionality
+            $('#exportBtn').click(function() {
+                exportAuditData('csv');
+            });
+
+            $('#exportCSV').click(function() {
+                exportAuditData('csv');
+            });
+
+            $('#exportPDF').click(function() {
+                exportAuditData('pdf');
+            });
+
+            // Real-time updates
+            let realtimeInterval;
+            function startRealtimeUpdates() {
+                if ($('#realtimeToggle').is(':checked')) {
+                    realtimeInterval = setInterval(updateRealtimeActivities, 5000);
+                }
+            }
+
+            function stopRealtimeUpdates() {
+                clearInterval(realtimeInterval);
+            }
+
+            $('#realtimeToggle').change(function() {
+                if ($(this).is(':checked')) {
+                    startRealtimeUpdates();
+                } else {
+                    stopRealtimeUpdates();
+                }
+            });
+
+            // Start real-time updates
+            startRealtimeUpdates();
+
+            // Selection functionality
+            let selectedAudits = [];
+
+            $('#selectAllAudits').change(function() {
+                const isChecked = $(this).is(':checked');
+                $('.audit-checkbox').prop('checked', isChecked).trigger('change');
+            });
+
+            $('.audit-checkbox').change(function() {
+                const auditId = $(this).val();
+                const isChecked = $(this).is(':checked');
+
+                if (isChecked) {
+                    if (!selectedAudits.includes(auditId)) {
+                        selectedAudits.push(auditId);
+                    }
+                } else {
+                    selectedAudits = selectedAudits.filter(id => id !== auditId);
+                }
+
+                updateBulkActionsUI();
+            });
+
+            function updateBulkActionsUI() {
+                const selectedCount = selectedAudits.length;
+                $('#selectedAuditsCount').text(selectedCount);
+
+                if (selectedCount > 0) {
+                    $('#bulkActions').slideDown();
+                } else {
+                    $('#bulkActions').slideUp();
+                }
+            }
+
+            // View audit details
+            $('.view-audit-details').click(function() {
+                const auditId = $(this).data('audit-id');
+                loadAuditDetails(auditId);
+            });
+
+            // Copy audit action
+            $('.copy-audit').click(function() {
+                const auditText = $(this).data('audit-text');
+                navigator.clipboard.writeText(auditText).then(() => {
+                    showNotification('Action text copied to clipboard!', 'success');
+                });
+            });
+
+            // Helper functions
+            function calculateStatistics() {
+                const total = @Model.Count;
+                const approved = @Model.Count(a => a.Action.Contains("Approved"));
+                const rejected = @Model.Count(a => a.Action.Contains("Rejected"));
+                const today = @Model.Count(a => a.Timestamp.Date == DateTime.Today);
+                const uploadsToday = @Model.Count(a => a.Action.Contains("Uploaded") && a.Timestamp.Date == DateTime.Today);
+
+                $('#todayCount').text('Today: ' + today);
+                $('#approvalRate').text('Rate: ' + (total > 0 ? ((approved / total) * 100).toFixed(1) : 0) + '%');
+                $('#rejectionRate').text('Rate: ' + (total > 0 ? ((rejected / total) * 100).toFixed(1) : 0) + '%');
+                $('#uploadsToday').text('Today: ' + uploadsToday);
+            }
+
+            function updateRealtimeActivities() {
+                $.get('@Url.Action("GetRecentAuditActivities", "Manager")', function(data) {
+                    if (data.success) {
+                        $('#realtimeCount').text(data.data.length);
+                        updateRealtimeFeed(data.data);
+                    }
+                });
+            }
+
+            function updateRealtimeFeed(activities) {
+                const $feed = $('#realtimeActivities');
+                activities.forEach(activity => {
+                    const activityHtml = `
+                        <div class="realtime-activity mb-2 p-2 border rounded">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <strong>${activity.action}</strong>
+                                    <small class="text-muted">by ${activity.userName}</small>
+                                </div>
+                                <small class="text-muted">${activity.time}</small>
+                            </div>
+                        </div>
+                    `;
+                    $feed.prepend(activityHtml);
+                });
+
+                // Keep only last 10 activities
+                $feed.children().slice(10).remove();
+            }
+
+            function generateAnalytics() {
+                // Implement chart generation using Chart.js
+                // This would use the audit data to create various charts
+                console.log('Generating analytics charts...');
+            }
+
+            function exportAuditData(format) {
+                const params = new URLSearchParams(window.location.search);
+                params.append('format', format);
+
+                window.open('@Url.Action("ExportAuditTrail", "Manager")?' + params.toString(), '_blank');
+            }
+
+            function loadAuditDetails(auditId) {
+                $.get('@Url.Action("GetAuditDetails", "Manager")', { id: auditId }, function(data) {
+                    if (data.success) {
+                        $('#auditDetailsContent').html(data.html);
+                        $('#auditDetailsModal').modal('show');
+                    }
+                });
+            }
+
+            function showNotification(message, type) {
+                const alertClass = type === 'success' ? 'alert-success' : 'alert-info';
+                const icon = type === 'success' ? 'fa-check-circle' : 'fa-info-circle';
+
+                const notification = $(`
+                    <div class="alert ${alertClass} alert-dismissible fade show mt-3" role="alert">
+                        <i class="fas ${icon} me-2"></i>${message}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                `);
+
+                $('main').prepend(notification);
+
+                setTimeout(function() {
+                    notification.alert('close');
+                }, 3000);
+            }
+
+            // Auto-refresh every 5 minutes
+            setInterval(() => {
+                if (document.visibilityState === 'visible') {
+                    window.location.reload();
+                }
+            }, 300000);
         });
     </script>
+}
+
+<style>
+    .realtime-feed {
+        max-height: 200px;
+        overflow-y: auto;
+    }
+
+    .realtime-activity {
+        background: #f8f9fa;
+        border-left: 4px solid #28a745 !important;
+    }
+
+    .timeline {
+        position: relative;
+        padding-left: 30px;
+    }
+
+    .timeline-item {
+        position: relative;
+        padding-bottom: 20px;
+    }
+
+        .timeline-item:not(:last-child):before {
+            content: '';
+            position: absolute;
+            left: -20px;
+            top: 0;
+            bottom: -20px;
+            width: 2px;
+            background-color: #e9ecef;
+        }
+
+    .timeline-marker {
+        position: absolute;
+        left: -30px;
+        top: 5px;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+    }
+
+    .timeline-content {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 6px;
+        border-left: 4px solid #0d6efd;
+    }
+
+    .quick-date.active {
+        background-color: #0d6efd;
+        color: white;
+    }
+
+    .action-category:checked + .form-check-label .badge {
+        opacity: 1;
+    }
+
+    .action-category:not(:checked) + .form-check-label .badge {
+        opacity: 0.5;
+    }
+
+    .avatar-sm {
+        width: 32px;
+        height: 32px;
+    }
+</style>
+@functions {
+    public string Truncate(string value, int maxLength)
+    {
+        if (string.IsNullOrEmpty(value)) return value;
+        return value.Length <= maxLength ? value : value.Substring(0, maxLength) + "...";
+    }
+
+    public string GetAuditColor(string action)
+    {
+        return action.ToLower() switch
+        {
+            var a when a.Contains("approved") => "success",
+            var a when a.Contains("rejected") => "danger",
+            var a when a.Contains("submitted") => "primary",
+            var a when a.Contains("uploaded") => "info",
+            var a when a.Contains("verified") => "warning",
+            _ => "secondary"
+        };
+    }
+
+    public string GetActionType(string action)
+    {
+        return action.ToLower() switch
+        {
+            var a when a.Contains("approved") => "Approved",
+            var a when a.Contains("rejected") => "Rejected",
+            var a when a.Contains("submitted") => "Submitted",
+            var a when a.Contains("uploaded") => "Uploaded",
+            var a when a.Contains("verified") => "Verified",
+            _ => "Other"
+        };
+    }
+
+    public string GetUserRoleColor(string role)
+    {
+        return role?.ToLower() switch
+        {
+            "manager" => "warning",
+            "coordinator" => "info",
+            "lecturer" => "success",
+            _ => "secondary"
+        };
+    }
+
+    public string GetActionBadgeClass(string action)
+    {
+        return action.ToLower() switch
+        {
+            var a when a.Contains("approved") => "bg-success",
+            var a when a.Contains("rejected") => "bg-danger",
+            var a when a.Contains("submitted") => "bg-primary",
+            var a when a.Contains("uploaded") => "bg-info",
+            var a when a.Contains("verified") => "bg-warning",
+            _ => "bg-secondary"
+        };
+    }
+
+    public string GetActionIcon(string action)
+    {
+        return action.ToLower() switch
+        {
+            var a when a.Contains("approved") => "fas fa-check",
+            var a when a.Contains("rejected") => "fas fa-times",
+            var a when a.Contains("submitted") => "fas fa-paper-plane",
+            var a when a.Contains("uploaded") => "fas fa-upload",
+            var a when a.Contains("verified") => "fas fa-check-double",
+            _ => "fas fa-info"
+        };
+    }
+
+    public string GetActionDisplay(string action)
+    {
+        if (action.Length > 25)
+            return action.Substring(0, 25) + "...";
+        return action;
+    }
 }

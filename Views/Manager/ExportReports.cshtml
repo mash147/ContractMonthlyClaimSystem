@@ -13,7 +13,7 @@
                      startDate = ViewBag.StartDate, 
                      endDate = ViewBag.EndDate, 
                      format = "PDF" })" 
-               class="btn btn-sm btn-danger">
+               class="btn btn-sm btn-danger" id="exportPdfBtn">
                 <i class="fas fa-file-pdf me-1"></i>Export PDF
             </a>
             <a href="@Url.Action("DownloadReport", new { 
@@ -21,7 +21,7 @@
                      startDate = ViewBag.StartDate, 
                      endDate = ViewBag.EndDate, 
                      format = "Excel" })" 
-               class="btn btn-sm btn-success">
+               class="btn btn-sm btn-success" id="exportExcelBtn">
                 <i class="fas fa-file-excel me-1"></i>Export Excel
             </a>
         </div>
@@ -36,7 +36,7 @@
                 <h5 class="card-title mb-0"><i class="fas fa-cog me-2 text-primary"></i>Report Configuration</h5>
             </div>
             <div class="card-body">
-                <form method="post" asp-action="GenerateExport">
+                <form method="post" asp-action="GenerateExport" id="reportForm">
                     <div class="mb-3">
                         <label for="reportType" class="form-label">Report Type</label>
                         <select class="form-select" id="reportType" name="ReportType">
@@ -56,7 +56,7 @@
                         <input type="date" class="form-control" id="endDate" name="EndDate" 
                                value="@ViewBag.EndDate.ToString("yyyy-MM-dd")" required>
                     </div>
-                    <button type="submit" class="btn btn-primary w-100">
+                    <button type="submit" class="btn btn-primary w-100" id="generateReportBtn">
                         <i class="fas fa-sync me-1"></i>Generate Report
                     </button>
                 </form>
@@ -70,19 +70,39 @@
             </div>
             <div class="card-body">
                 <div class="d-grid gap-2">
-                    <a href="@Url.Action("DownloadReport", new { reportType = "Comprehensive", startDate = DateTime.Now.AddMonths(-1), endDate = DateTime.Now, format = "PDF" })" 
-                       class="btn btn-outline-primary btn-sm">
+                    <button class="btn btn-outline-primary btn-sm quick-export" 
+                            data-report-type="Comprehensive" 
+                            data-days="30" 
+                            data-format="PDF">
                         <i class="fas fa-file-pdf me-1"></i>Last Month (PDF)
-                    </a>
-                    <a href="@Url.Action("DownloadReport", new { reportType = "Financial", startDate = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1), endDate = DateTime.Now, format = "Excel" })" 
-                       class="btn btn-outline-success btn-sm">
+                    </button>
+                    <button class="btn btn-outline-success btn-sm quick-export" 
+                            data-report-type="Financial" 
+                            data-days="0" 
+                            data-format="Excel">
                         <i class="fas fa-file-excel me-1"></i>This Month (Excel)
-                    </a>
-                    <a href="@Url.Action("DownloadReport", new { reportType = "Claims Summary", startDate = DateTime.Now.AddYears(-1), endDate = DateTime.Now, format = "PDF" })" 
-                       class="btn btn-outline-info btn-sm">
+                    </button>
+                    <button class="btn btn-outline-info btn-sm quick-export" 
+                            data-report-type="Claims Summary" 
+                            data-days="365" 
+                            data-format="PDF">
                         <i class="fas fa-file-pdf me-1"></i>Last Year (PDF)
-                    </a>
+                    </button>
                 </div>
+            </div>
+        </div>
+
+        <!-- Export Progress -->
+        <div class="card manager-card mt-4" id="exportProgress" style="display: none;">
+            <div class="card-header bg-white">
+                <h6 class="card-title mb-0"><i class="fas fa-spinner fa-spin me-2 text-info"></i>Generating Report</h6>
+            </div>
+            <div class="card-body">
+                <div class="progress mb-3">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                         role="progressbar" style="width: 0%"></div>
+                </div>
+                <p class="small text-muted mb-0" id="progressText">Preparing report data...</p>
             </div>
         </div>
     </div>
@@ -95,159 +115,176 @@
                     <i class="fas fa-chart-bar me-2 text-success"></i>
                     @ViewBag.ReportType Report Preview
                 </h5>
-                <small class="text-muted">
-                    @ViewBag.StartDate.ToString("dd MMM yyyy") - @ViewBag.EndDate.ToString("dd MMM yyyy")
-                </small>
+                <div>
+                    <small class="text-muted me-3">
+                        @ViewBag.StartDate.ToString("dd MMM yyyy") - @ViewBag.EndDate.ToString("dd MMM yyyy")
+                    </small>
+                    <button class="btn btn-sm btn-outline-secondary" id="refreshPreview">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
             </div>
             <div class="card-body">
-                <!-- Report Header -->
-                <div class="row mb-4">
-                    <div class="col-12 text-center">
-                        <h4 class="text-primary">CONTRACT MONTHLY CLAIM SYSTEM</h4>
-                        <h5 class="text-muted">@ViewBag.ReportType REPORT</h5>
-                        <p class="text-muted mb-0">
-                            Period: @ViewBag.StartDate.ToString("dd MMMM yyyy") to @ViewBag.EndDate.ToString("dd MMMM yyyy")
-                        </p>
-                        <small class="text-muted">Generated on: @DateTime.Now.ToString("dd MMMM yyyy 'at' HH:mm")</small>
+                @if (Model.Claims == null || !Model.Claims.Any())
+                {
+                    <div class="text-center py-5">
+                        <i class="fas fa-chart-bar fa-4x text-muted mb-3"></i>
+                        <h4 class="text-muted">No Data Available</h4>
+                        <p class="text-muted">No claims found for the selected period.</p>
+                        <p class="text-muted">Try adjusting the date range or report type.</p>
                     </div>
-                </div>
+                }
+                else
+                {
+                    <!-- Report Header -->
+                    <div class="row mb-4">
+                        <div class="col-12 text-center">
+                            <h4 class="text-primary">CONTRACT MONTHLY CLAIM SYSTEM</h4>
+                            <h5 class="text-muted">@ViewBag.ReportType REPORT</h5>
+                            <p class="text-muted mb-0">
+                                Period: @ViewBag.StartDate.ToString("dd MMMM yyyy") to @ViewBag.EndDate.ToString("dd MMMM yyyy")
+                            </p>
+                            <small class="text-muted">Generated on: @DateTime.Now.ToString("dd MMMM yyyy 'at' HH:mm")</small>
+                        </div>
+                    </div>
 
-                <!-- Summary Statistics -->
-                <div class="row mb-4">
-                    <div class="col-md-3 text-center">
-                        <div class="border rounded p-3">
-                            <div class="h4 text-primary mb-1">@Model.TotalClaims</div>
-                            <small class="text-muted">Total Claims</small>
+                    <!-- Summary Statistics -->
+                    <div class="row mb-4">
+                        <div class="col-md-3 text-center">
+                            <div class="border rounded p-3">
+                                <div class="h4 text-primary mb-1">@Model.TotalClaims</div>
+                                <small class="text-muted">Total Claims</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3 text-center">
+                            <div class="border rounded p-3">
+                                <div class="h4 text-success mb-1">@Model.ApprovedClaims</div>
+                                <small class="text-muted">Approved</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3 text-center">
+                            <div class="border rounded p-3">
+                                <div class="h4 text-warning mb-1">@Model.PendingClaims</div>
+                                <small class="text-muted">Pending</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3 text-center">
+                            <div class="border rounded p-3">
+                                <div class="h4 text-danger mb-1">@Model.RejectedClaims</div>
+                                <small class="text-muted">Rejected</small>
+                            </div>
                         </div>
                     </div>
-                    <div class="col-md-3 text-center">
-                        <div class="border rounded p-3">
-                            <div class="h4 text-success mb-1">@Model.ApprovedClaims</div>
-                            <small class="text-muted">Approved</small>
-                        </div>
-                    </div>
-                    <div class="col-md-3 text-center">
-                        <div class="border rounded p-3">
-                            <div class="h4 text-warning mb-1">@Model.PendingClaims</div>
-                            <small class="text-muted">Pending</small>
-                        </div>
-                    </div>
-                    <div class="col-md-3 text-center">
-                        <div class="border rounded p-3">
-                            <div class="h4 text-danger mb-1">@Model.RejectedClaims</div>
-                            <small class="text-muted">Rejected</small>
-                        </div>
-                    </div>
-                </div>
 
-                <!-- Financial Summary -->
-                <div class="row mb-4">
-                    <div class="col-12">
-                        <div class="alert alert-success">
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <strong>Total Approved Amount:</strong>
-                                    <div class="h4 mt-1">@Model.TotalAmount.ToString("C")</div>
-                                </div>
-                                <div class="col-md-6">
-                                    <strong>Approval Rate:</strong>
-                                    <div class="h4 mt-1">
-                                        @((Model.TotalClaims > 0 ? (decimal)Model.ApprovedClaims / Model.TotalClaims * 100 : 0).ToString("F1"))%
+                    <!-- Financial Summary -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="alert alert-success">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <strong>Total Approved Amount:</strong>
+                                        <div class="h4 mt-1">@Model.TotalAmount.ToString("C")</div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <strong>Approval Rate:</strong>
+                                        <div class="h4 mt-1">
+                                            @((Model.TotalClaims > 0 ? (decimal)Model.ApprovedClaims / Model.TotalClaims * 100 : 0).ToString("F1"))%
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <!-- Department Breakdown -->
-                <h6 class="border-bottom pb-2 mb-3">Department Performance</h6>
-                <div class="table-responsive mb-4">
-                    <table class="table table-sm table-bordered">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Department</th>
-                                <th>Total Claims</th>
-                                <th>Approved</th>
-                                <th>Amount</th>
-                                <th>Approval Rate</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var dept in Model.Statistics.DepartmentStats)
-                            {
+                    <!-- Department Breakdown -->
+                    <h6 class="border-bottom pb-2 mb-3">Department Performance</h6>
+                    <div class="table-responsive mb-4">
+                        <table class="table table-sm table-bordered">
+                            <thead class="table-light">
                                 <tr>
-                                    <td class="fw-bold">@dept.Department</td>
-                                    <td>@dept.TotalClaims</td>
-                                    <td>@dept.ApprovedClaims</td>
-                                    <td class="text-success">@dept.TotalAmount.ToString("C")</td>
-                                    <td>
-                                        <div class="progress" style="height: 6px;">
-                                            <div class="progress-bar bg-success" style="width: @dept.ApprovalRate%"></div>
-                                        </div>
-                                        <small>@dept.ApprovalRate.ToString("F1")%</small>
-                                    </td>
+                                    <th>Department</th>
+                                    <th>Total Claims</th>
+                                    <th>Approved</th>
+                                    <th>Amount</th>
+                                    <th>Approval Rate</th>
                                 </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- Recent Claims -->
-                <h6 class="border-bottom pb-2 mb-3">Recent Claims Summary</h6>
-                <div class="table-responsive">
-                    <table class="table table-sm table-bordered">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Claim ID</th>
-                                <th>Lecturer</th>
-                                <th>Department</th>
-                                <th>Amount</th>
-                                <th>Status</th>
-                                <th>Submitted</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var claim in Model.Claims.Take(10))
-                            {
-                                <tr>
-                                    <td>#@claim.ClaimID</td>
-                                    <td>@claim.Lecturer?.Name</td>
-                                    <td>@claim.Lecturer?.Department</td>
-                                    <td class="text-success">@claim.Amount.ToString("C")</td>
-                                    <td>
-                                        @switch (claim.Status)
-                                        {
-                                            case "Approved":
-                                                <span class="badge bg-success">Approved</span>
-                                                break;
-                                            case "Rejected":
-                                                <span class="badge bg-danger">Rejected</span>
-                                                break;
-                                            case "Pending":
-                                                <span class="badge bg-warning">Pending</span>
-                                                break;
-                                            default:
-                                                <span class="badge bg-secondary">@claim.Status</span>
-                                                break;
-                                        }
-                                    </td>
-                                    <td>@claim.SubmissionDate.ToString("dd MMM yyyy")</td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- Report Footer -->
-                <div class="row mt-4 pt-3 border-top">
-                    <div class="col-12 text-center">
-                        <small class="text-muted">
-                            This report was automatically generated by the Contract Monthly Claim System.
-                            For questions, contact the Academic Manager.
-                        </small>
+                            </thead>
+                            <tbody>
+                                @foreach (var dept in Model.Statistics.DepartmentStats)
+                                {
+                                    <tr>
+                                        <td class="fw-bold">@dept.Department</td>
+                                        <td>@dept.TotalClaims</td>
+                                        <td>@dept.ApprovedClaims</td>
+                                        <td class="text-success">@dept.TotalAmount.ToString("C")</td>
+                                        <td>
+                                            <div class="progress" style="height: 6px;">
+                                                <div class="progress-bar bg-success" style="width: @dept.ApprovalRate%"></div>
+                                            </div>
+                                            <small>@dept.ApprovalRate.ToString("F1")%</small>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
                     </div>
-                </div>
+
+                    <!-- Recent Claims -->
+                    <h6 class="border-bottom pb-2 mb-3">Recent Claims Summary</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Claim ID</th>
+                                    <th>Lecturer</th>
+                                    <th>Department</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                    <th>Submitted</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var claim in Model.Claims.Take(10))
+                                {
+                                    <tr>
+                                        <td>#@claim.ClaimID</td>
+                                        <td>@claim.Lecturer?.Name</td>
+                                        <td>@claim.Lecturer?.Department</td>
+                                        <td class="text-success">@claim.Amount.ToString("C")</td>
+                                        <td>
+                                            @switch (claim.Status)
+                                            {
+                                                case "Approved":
+                                                    <span class="badge bg-success">Approved</span>
+                                                    break;
+                                                case "Rejected":
+                                                    <span class="badge bg-danger">Rejected</span>
+                                                    break;
+                                                case "Pending":
+                                                    <span class="badge bg-warning">Pending</span>
+                                                    break;
+                                                default:
+                                                    <span class="badge bg-secondary">@claim.Status</span>
+                                                    break;
+                                            }
+                                        </td>
+                                        <td>@claim.SubmissionDate.ToString("dd MMM yyyy")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Report Footer -->
+                    <div class="row mt-4 pt-3 border-top">
+                        <div class="col-12 text-center">
+                            <small class="text-muted">
+                                This report was automatically generated by the Contract Monthly Claim System.
+                                For questions, contact the Academic Manager.
+                            </small>
+                        </div>
+                    </div>
+                }
             </div>
         </div>
     </div>
@@ -257,12 +294,15 @@
 <div class="row mt-4">
     <div class="col-12">
         <div class="card manager-card">
-            <div class="card-header bg-white">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
                 <h5 class="card-title mb-0"><i class="fas fa-history me-2 text-info"></i>Recent Exports</h5>
+                <button class="btn btn-sm btn-outline-secondary" id="refreshHistory">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
             </div>
             <div class="card-body">
                 <div class="table-responsive">
-                    <table class="table table-sm">
+                    <table class="table table-sm" id="exportHistoryTable">
                         <thead class="table-light">
                             <tr>
                                 <th>Export Date</th>
@@ -273,33 +313,16 @@
                                 <th>Actions</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            <tr>
-                                <td>@DateTime.Now.AddDays(-1).ToString("dd MMM yyyy HH:mm")</td>
-                                <td>Financial Report</td>
-                                <td>Last 30 Days</td>
-                                <td><span class="badge bg-danger">PDF</span></td>
-                                <td>Academic Manager</td>
-                                <td>
-                                    <button class="btn btn-sm btn-outline-primary">
-                                        <i class="fas fa-redo"></i> Regenerate
-                                    </button>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>@DateTime.Now.AddDays(-3).ToString("dd MMM yyyy HH:mm")</td>
-                                <td>Comprehensive Report</td>
-                                <td>Last Quarter</td>
-                                <td><span class="badge bg-success">Excel</span></td>
-                                <td>Academic Manager</td>
-                                <td>
-                                    <button class="btn btn-sm btn-outline-primary">
-                                        <i class="fas fa-redo"></i> Regenerate
-                                    </button>
-                                </td>
-                            </tr>
+                        <tbody id="exportHistoryBody">
+                            <!-- Dynamic content will be loaded here -->
                         </tbody>
                     </table>
+                </div>
+                <div class="text-center mt-3" id="historyLoading">
+                    <div class="spinner-border spinner-border-sm" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <span class="ms-2">Loading export history...</span>
                 </div>
             </div>
         </div>
@@ -309,6 +332,9 @@
 @section Scripts {
     <script>
         $(document).ready(function() {
+            // Load export history
+            loadExportHistory();
+
             // Auto-update end date based on start date
             $('#startDate').change(function() {
                 const startDate = new Date($(this).val());
@@ -320,16 +346,167 @@
             });
 
             // Validate date range
-            $('form').submit(function(e) {
+            $('#reportForm').submit(function(e) {
                 const startDate = new Date($('#startDate').val());
                 const endDate = new Date($('#endDate').val());
                 
                 if (startDate > endDate) {
                     e.preventDefault();
-                    alert('End date must be after start date.');
+                    showNotification('End date must be after start date.', 'warning');
                     return false;
                 }
+
+                // Show loading state
+                $('#generateReportBtn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i>Generating...');
             });
+
+            // Quick export buttons
+            $('.quick-export').click(function() {
+                const reportType = $(this).data('report-type');
+                const days = $(this).data('days');
+                const format = $(this).data('format');
+
+                const endDate = new Date();
+                const startDate = new Date();
+                startDate.setDate(startDate.getDate() - days);
+
+                // Update form values
+                $('#reportType').val(reportType);
+                $('#startDate').val(startDate.toISOString().split('T')[0]);
+                $('#endDate').val(endDate.toISOString().split('T')[0]);
+
+                // Trigger download
+                if (format === 'PDF') {
+                    $('#exportPdfBtn')[0].click();
+                } else {
+                    $('#exportExcelBtn')[0].click();
+                }
+            });
+
+            // Refresh preview
+            $('#refreshPreview').click(function() {
+                const $btn = $(this);
+                $btn.addClass('fa-spin');
+                setTimeout(() => {
+                    window.location.reload();
+                }, 500);
+            });
+
+            // Refresh history
+            $('#refreshHistory').click(function() {
+                loadExportHistory();
+            });
+
+            // Export button click handlers
+            $('#exportPdfBtn, #exportExcelBtn').click(function(e) {
+                const format = $(this).attr('href').includes('format=PDF') ? 'PDF' : 'Excel';
+                showExportProgress(format);
+            });
+
+            function loadExportHistory() {
+                $('#historyLoading').show();
+                $('#exportHistoryBody').empty();
+
+                $.get('@Url.Action("GetExportHistory", "Manager")', function(response) {
+                    if (response.success) {
+                        const history = response.data;
+                        let html = '';
+
+                        if (history.length === 0) {
+                            html = `<tr><td colspan="6" class="text-center py-4 text-muted">No export history found.</td></tr>`;
+                        } else {
+                            history.forEach(item => {
+                                const exportDate = new Date(item.exportDate).toLocaleString();
+                                const formatBadge = item.format === 'PDF' ? 
+                                    '<span class="badge bg-danger">PDF</span>' : 
+                                    '<span class="badge bg-success">Excel</span>';
+
+                                html += `
+                                    <tr>
+                                        <td>${exportDate}</td>
+                                        <td>${item.reportType}</td>
+                                        <td>${item.period}</td>
+                                        <td>${formatBadge}</td>
+                                        <td>${item.generatedBy}</td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-primary regenerate-btn"
+                                                    data-report-type="${item.reportType}"
+                                                    data-format="${item.format}">
+                                                <i class="fas fa-redo"></i> Regenerate
+                                            </button>
+                                        </td>
+                                    </tr>
+                                `;
+                            });
+                        }
+
+                        $('#exportHistoryBody').html(html);
+                    } else {
+                        $('#exportHistoryBody').html(`<tr><td colspan="6" class="text-center py-4 text-danger">Error loading history: ${response.message}</td></tr>`);
+                    }
+                }).fail(function() {
+                    $('#exportHistoryBody').html(`<tr><td colspan="6" class="text-center py-4 text-danger">Failed to load export history.</td></tr>`);
+                }).always(function() {
+                    $('#historyLoading').hide();
+                });
+            }
+
+            // Regenerate report
+            $(document).on('click', '.regenerate-btn', function() {
+                const reportType = $(this).data('report-type');
+                const format = $(this).data('format');
+                
+                // For now, just trigger a download with current dates
+                // In a real implementation, you might want to store the original dates
+                const startDate = $('#startDate').val();
+                const endDate = $('#endDate').val();
+
+                window.location.href = `@Url.Action("RegenerateReport", "Manager")?reportType=${reportType}&startDate=${startDate}&endDate=${endDate}&format=${format}`;
+            });
+
+            function showExportProgress(format) {
+                $('#exportProgress').show();
+                const $progressBar = $('.progress-bar');
+                const $progressText = $('#progressText');
+
+                // Simulate progress
+                let progress = 0;
+                const interval = setInterval(() => {
+                    progress += Math.random() * 15;
+                    if (progress >= 100) {
+                        progress = 100;
+                        clearInterval(interval);
+                        $progressText.text('Report generated successfully!');
+                        setTimeout(() => {
+                            $('#exportProgress').hide();
+                            $progressBar.css('width', '0%');
+                        }, 1000);
+                    } else {
+                        $progressBar.css('width', progress + '%');
+                        $progressText.text(`Generating ${format} report... ${Math.round(progress)}%`);
+                    }
+                }, 200);
+            }
+
+            function showNotification(message, type = 'success') {
+                const alertClass = type === 'success' ? 'alert-success' : 
+                                 type === 'warning' ? 'alert-warning' : 'alert-danger';
+                const icon = type === 'success' ? 'fa-check-circle' : 
+                            type === 'warning' ? 'fa-exclamation-triangle' : 'fa-exclamation-circle';
+
+                const notification = $(`
+                    <div class="alert ${alertClass} alert-dismissible fade show mt-3" role="alert">
+                        <i class="fas ${icon} me-2"></i>${message}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                `);
+
+                $('main').prepend(notification);
+
+                setTimeout(() => {
+                    notification.alert('close');
+                }, 5000);
+            }
         });
     </script>
 }

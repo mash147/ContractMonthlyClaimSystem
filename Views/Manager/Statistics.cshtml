@@ -9,9 +9,116 @@
     <h1 class="h2">Statistics & Analytics</h1>
     <div class="btn-toolbar mb-2 mb-md-0">
         <div class="btn-group me-2">
-            <a href="@Url.Action("ExportReports")" class="btn btn-sm btn-outline-primary">
+            <button class="btn btn-sm btn-outline-primary" id="refreshStats">
+                <i class="fas fa-sync-alt me-1"></i>Refresh
+            </button>
+            <a href="@Url.Action("ExportReports")" class="btn btn-sm btn-outline-success">
                 <i class="fas fa-download me-1"></i>Export Data
             </a>
+        </div>
+    </div>
+</div>
+
+<!-- Date Range Selector -->
+<div class="card manager-card mb-4">
+    <div class="card-header bg-white">
+        <h5 class="card-title mb-0"><i class="fas fa-calendar me-2 text-primary"></i>Date Range Selection</h5>
+    </div>
+    <div class="card-body">
+        <form id="dateRangeForm" class="row g-3">
+            <div class="col-md-3">
+                <label for="startDate" class="form-label">Start Date</label>
+                <input type="date" class="form-control" id="startDate"
+                       value="@Model.StartDate.ToString("yyyy-MM-dd")" required>
+            </div>
+            <div class="col-md-3">
+                <label for="endDate" class="form-label">End Date</label>
+                <input type="date" class="form-control" id="endDate"
+                       value="@Model.EndDate.ToString("yyyy-MM-dd")" required>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Quick Select</label>
+                <div class="btn-group w-100">
+                    <button type="button" class="btn btn-outline-secondary btn-sm quick-range" data-days="7">7D</button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm quick-range" data-days="30">1M</button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm quick-range" data-days="90">3M</button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm quick-range" data-days="180">6M</button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm quick-range" data-days="365">1Y</button>
+                </div>
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100" id="applyDateRange">
+                    <i class="fas fa-filter me-1"></i>Apply
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Real-time Stats -->
+<div class="row mb-4" id="realTimeStats">
+    <div class="col-md-3">
+        <div class="card manager-card border-start border-info border-4">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs fw-bold text-info text-uppercase mb-1">Today's Claims</div>
+                        <div class="h5 mb-0 fw-bold text-gray-800" id="claimsToday">0</div>
+                        <div class="mt-2 text-xs text-muted">Submitted today</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-calendar-day fa-2x text-info"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card manager-card border-start border-success border-4">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs fw-bold text-success text-uppercase mb-1">Approved Today</div>
+                        <div class="h5 mb-0 fw-bold text-gray-800" id="approvedToday">0</div>
+                        <div class="mt-2 text-xs text-muted">Approved today</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-check-circle fa-2x text-success"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card manager-card border-start border-warning border-4">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs fw-bold text-warning text-uppercase mb-1">Pending Approval</div>
+                        <div class="h5 mb-0 fw-bold text-gray-800" id="pendingApproval">0</div>
+                        <div class="mt-2 text-xs text-muted">Awaiting final approval</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-clock fa-2x text-warning"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card manager-card border-start border-primary border-4">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs fw-bold text-primary text-uppercase mb-1">Today's Amount</div>
+                        <div class="h5 mb-0 fw-bold text-gray-800" id="amountToday">$0</div>
+                        <div class="mt-2 text-xs text-muted">Approved amount today</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-dollar-sign fa-2x text-primary"></i>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -19,19 +126,20 @@
 <!-- Date Range Info -->
 <div class="alert alert-info mb-4">
     <i class="fas fa-info-circle me-2"></i>
-    Showing statistics from <strong>@Model.StartDate.ToString("dd MMM yyyy")</strong> to 
-    <strong>@Model.EndDate.ToString("dd MMM yyyy")</strong>
+    Showing statistics from <strong id="displayStartDate">@Model.StartDate.ToString("dd MMM yyyy")</strong> to
+    <strong id="displayEndDate">@Model.EndDate.ToString("dd MMM yyyy")</strong>
+    <span class="badge bg-primary ms-2" id="totalPeriodClaims">@Model.TotalClaims Total Claims</span>
 </div>
 
 <!-- Key Metrics -->
-<div class="row mb-4">
+<div class="row mb-4" id="keyMetrics">
     <div class="col-xl-3 col-md-6 mb-4">
         <div class="card manager-card border-start border-primary border-4">
             <div class="card-body">
                 <div class="row align-items-center">
                     <div class="col mr-2">
                         <div class="text-xs fw-bold text-primary text-uppercase mb-1">Total Claims</div>
-                        <div class="h5 mb-0 fw-bold text-gray-800">@Model.TotalClaims</div>
+                        <div class="h5 mb-0 fw-bold text-gray-800" id="totalClaims">@Model.TotalClaims</div>
                         <div class="mt-2 text-xs text-muted">All claims submitted</div>
                     </div>
                     <div class="col-auto">
@@ -48,9 +156,9 @@
                 <div class="row align-items-center">
                     <div class="col mr-2">
                         <div class="text-xs fw-bold text-success text-uppercase mb-1">Approved Claims</div>
-                        <div class="h5 mb-0 fw-bold text-gray-800">@Model.ApprovedClaims</div>
+                        <div class="h5 mb-0 fw-bold text-gray-800" id="approvedClaims">@Model.ApprovedClaims</div>
                         <div class="mt-2 text-xs text-muted">
-                            @((Model.TotalClaims > 0 ? (decimal)Model.ApprovedClaims / Model.TotalClaims * 100 : 0).ToString("F1"))% approval rate
+                            <span id="approvalRate">@((Model.TotalClaims > 0 ? (decimal)Model.ApprovedClaims / Model.TotalClaims * 100 : 0).ToString("F1"))%</span> approval rate
                         </div>
                     </div>
                     <div class="col-auto">
@@ -67,7 +175,7 @@
                 <div class="row align-items-center">
                     <div class="col mr-2">
                         <div class="text-xs fw-bold text-warning text-uppercase mb-1">Pending Claims</div>
-                        <div class="h5 mb-0 fw-bold text-gray-800">@Model.PendingClaims</div>
+                        <div class="h5 mb-0 fw-bold text-gray-800" id="pendingClaims">@Model.PendingClaims</div>
                         <div class="mt-2 text-xs text-muted">Awaiting processing</div>
                     </div>
                     <div class="col-auto">
@@ -84,7 +192,7 @@
                 <div class="row align-items-center">
                     <div class="col mr-2">
                         <div class="text-xs fw-bold text-danger text-uppercase mb-1">Total Amount</div>
-                        <div class="h5 mb-0 fw-bold text-gray-800">@Model.TotalAmount.ToString("C")</div>
+                        <div class="h5 mb-0 fw-bold text-gray-800" id="totalAmount">@Model.TotalAmount.ToString("C")</div>
                         <div class="mt-2 text-xs text-muted">Approved claims value</div>
                     </div>
                     <div class="col-auto">
@@ -96,16 +204,17 @@
     </div>
 </div>
 
-<div class="row">
+<div class="row" id="dataTables">
     <!-- Department Statistics -->
     <div class="col-lg-6 mb-4">
         <div class="card manager-card">
-            <div class="card-header bg-white">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
                 <h5 class="card-title mb-0"><i class="fas fa-building me-2 text-primary"></i>Department Performance</h5>
+                <span class="badge bg-primary" id="deptCount">@Model.DepartmentStats.Count Departments</span>
             </div>
             <div class="card-body">
                 <div class="table-responsive">
-                    <table class="table table-sm">
+                    <table class="table table-sm" id="departmentTable">
                         <thead class="table-light">
                             <tr>
                                 <th>Department</th>
@@ -115,7 +224,7 @@
                                 <th>Rate</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody id="departmentStatsBody">
                             @foreach (var dept in Model.DepartmentStats)
                             {
                                 <tr>
@@ -141,12 +250,13 @@
     <!-- Top Lecturers -->
     <div class="col-lg-6 mb-4">
         <div class="card manager-card">
-            <div class="card-header bg-white">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
                 <h5 class="card-title mb-0"><i class="fas fa-users me-2 text-success"></i>Top Performing Lecturers</h5>
+                <span class="badge bg-success" id="lecturerCount">@Model.LecturerStats.Count Lecturers</span>
             </div>
             <div class="card-body">
                 <div class="table-responsive">
-                    <table class="table table-sm">
+                    <table class="table table-sm" id="lecturerTable">
                         <thead class="table-light">
                             <tr>
                                 <th>Lecturer</th>
@@ -156,7 +266,7 @@
                                 <th>Rate</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody id="lecturerStatsBody">
                             @foreach (var lecturer in Model.LecturerStats)
                             {
                                 <tr>
@@ -183,12 +293,13 @@
 <div class="row">
     <div class="col-12">
         <div class="card manager-card">
-            <div class="card-header bg-white">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
                 <h5 class="card-title mb-0"><i class="fas fa-chart-line me-2 text-info"></i>Monthly Claims Breakdown</h5>
+                <span class="badge bg-info" id="monthCount">@Model.MonthlyBreakdown.Count Months</span>
             </div>
             <div class="card-body">
                 <div class="table-responsive">
-                    <table class="table table-hover">
+                    <table class="table table-hover" id="monthlyTable">
                         <thead class="table-light">
                             <tr>
                                 <th>Month</th>
@@ -199,7 +310,7 @@
                                 <th>Trend</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody id="monthlyStatsBody">
                             @foreach (var month in Model.MonthlyBreakdown)
                             {
                                 <tr>
@@ -212,7 +323,7 @@
                                     <td>
                                         <div class="d-flex align-items-center">
                                             <div class="progress flex-grow-1 me-2" style="height: 6px;">
-                                                <div class="progress-bar bg-@(month.ApprovalRate >= 80 ? "success" : month.ApprovalRate >= 60 ? "warning" : "danger")" 
+                                                <div class="progress-bar bg-@(month.ApprovalRate >= 80 ? "success" : month.ApprovalRate >= 60 ? "warning" : "danger")"
                                                      style="width: @month.ApprovalRate%"></div>
                                             </div>
                                             <small>@month.ApprovalRate.ToString("F1")%</small>
@@ -282,18 +393,76 @@
     </div>
 </div>
 
+<!-- Loading Overlay -->
+<div class="loading-overlay" id="loadingOverlay" style="display: none;">
+    <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+    </div>
+    <p class="mt-2">Loading statistics...</p>
+</div>
+
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
+        // Global chart variables
+        let statusChart, trendChart;
+
         $(document).ready(function() {
+            initializeCharts();
+            loadRealTimeStats();
+
+            // Auto-refresh real-time stats every 30 seconds
+            setInterval(loadRealTimeStats, 30000);
+
+            // Date range form submission
+            $('#dateRangeForm').submit(function(e) {
+                e.preventDefault();
+                updateStatistics();
+            });
+
+            // Quick range buttons
+            $('.quick-range').click(function() {
+                const days = $(this).data('days');
+                const endDate = new Date();
+                const startDate = new Date();
+                startDate.setDate(startDate.getDate() - days);
+
+                $('#startDate').val(startDate.toISOString().split('T')[0]);
+                $('#endDate').val(endDate.toISOString().split('T')[0]);
+                updateStatistics();
+            });
+
+            // Refresh button
+            $('#refreshStats').click(function() {
+                const $btn = $(this);
+                $btn.find('i').addClass('fa-spin');
+                updateStatistics().always(() => {
+                    setTimeout(() => $btn.find('i').removeClass('fa-spin'), 500);
+                });
+            });
+
+            // Auto-refresh every 2 minutes
+            setInterval(() => {
+                if (document.visibilityState === 'visible') {
+                    updateStatistics();
+                }
+            }, 120000);
+        });
+
+        function initializeCharts() {
             // Status Distribution Chart
             const statusCtx = document.getElementById('statusChart').getContext('2d');
-            const statusChart = new Chart(statusCtx, {
+            statusChart = new Chart(statusCtx, {
                 type: 'doughnut',
                 data: {
                     labels: ['Approved', 'Pending', 'Rejected', 'Under Review'],
                     datasets: [{
-                        data: [@Model.ApprovedClaims, @Model.PendingClaims, @Model.RejectedClaims, @(Model.TotalClaims - Model.ApprovedClaims - Model.PendingClaims - Model.RejectedClaims)],
+                        data: [
+                            @Model.ApprovedClaims,
+                            @Model.PendingClaims,
+                            @Model.RejectedClaims,
+                            @(Model.TotalClaims - Model.ApprovedClaims - Model.PendingClaims - Model.RejectedClaims)
+                        ],
                         backgroundColor: ['#28a745', '#ffc107', '#dc3545', '#17a2b8'],
                         borderWidth: 2,
                         borderColor: '#fff'
@@ -304,6 +473,17 @@
                     plugins: {
                         legend: {
                             position: 'bottom'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.raw || 0;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
+                                    return `${label}: ${value} (${percentage}%)`;
+                                }
+                            }
                         }
                     }
                 }
@@ -311,7 +491,7 @@
 
             // Monthly Trend Chart
             const trendCtx = document.getElementById('monthlyTrendChart').getContext('2d');
-            const trendChart = new Chart(trendCtx, {
+            trendChart = new Chart(trendCtx, {
                 type: 'line',
                 data: {
                     labels: @Html.Raw(Json.Serialize(Model.MonthlyBreakdown.Select(m => m.Month))),
@@ -322,7 +502,8 @@
                             borderColor: '#007bff',
                             backgroundColor: 'rgba(0, 123, 255, 0.1)',
                             tension: 0.4,
-                            fill: true
+                            fill: true,
+                            borderWidth: 2
                         },
                         {
                             label: 'Approved Claims',
@@ -330,7 +511,8 @@
                             borderColor: '#28a745',
                             backgroundColor: 'rgba(40, 167, 69, 0.1)',
                             tension: 0.4,
-                            fill: true
+                            fill: true,
+                            borderWidth: 2
                         }
                     ]
                 },
@@ -338,11 +520,308 @@
                     responsive: true,
                     scales: {
                         y: {
-                            beginAtZero: true
+                            beginAtZero: true,
+                            ticks: {
+                                precision: 0
+                            }
                         }
+                    },
+                    plugins: {
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false
+                        }
+                    },
+                    hover: {
+                        mode: 'nearest',
+                        intersect: true
                     }
                 }
             });
-        });
+        }
+
+                function updateStatistics() {
+            const startDate = $('#startDate').val();
+            const endDate = $('#endDate').val();
+
+            if (!startDate || !endDate) {
+                showNotification('Please select both start and end dates.', 'warning');
+                return $.Deferred().reject();
+            }
+
+            if (new Date(startDate) > new Date(endDate)) {
+                showNotification('Start date cannot be after end date.', 'warning');
+                return $.Deferred().reject();
+            }
+
+            $('#loadingOverlay').show();
+
+            // Updated URL to avoid ambiguity
+            return $.ajax({
+                url: '@Url.Action("UpdateStatisticsDateRange", "Manager")', // This should now work
+                type: 'POST',
+                data: {
+                    startDate: startDate,
+                    endDate: endDate
+                },
+                success: function(response) {
+                    if (response.success) {
+                        updateUI(response.data);
+                        showNotification('Statistics updated successfully!', 'success');
+                    } else {
+                        showNotification(response.message, 'error');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    showNotification('Error updating statistics: ' + error, 'error');
+                },
+                complete: function() {
+                    $('#loadingOverlay').hide();
+                }
+            });
+        }
+
+
+        function updateUI(data) {
+            // Update key metrics
+            $('#totalClaims').text(data.totalClaims);
+            $('#approvedClaims').text(data.approvedClaims);
+            $('#pendingClaims').text(data.pendingClaims);
+            $('#rejectedClaims').text(data.rejectedClaims);
+            $('#totalAmount').text(data.totalAmount);
+            $('#approvalRate').text(data.approvalRate + '%');
+
+            // Update date display
+            const startDate = new Date($('#startDate').val());
+            const endDate = new Date($('#endDate').val());
+            $('#displayStartDate').text(formatDate(startDate));
+            $('#displayEndDate').text(formatDate(endDate));
+            $('#totalPeriodClaims').text(data.totalClaims + ' Total Claims');
+
+            // Update department stats
+            updateDepartmentTable(data.departmentStats);
+            $('#deptCount').text(data.departmentStats.length + ' Departments');
+
+            // Update lecturer stats
+            updateLecturerTable(data.lecturerStats);
+            $('#lecturerCount').text(data.lecturerStats.length + ' Lecturers');
+
+            // Update monthly breakdown
+            updateMonthlyTable(data.monthlyBreakdown);
+            $('#monthCount').text(data.monthlyBreakdown.length + ' Months');
+
+            // Update charts
+            updateCharts(data);
+        }
+
+        function updateDepartmentTable(departmentStats) {
+            const tbody = $('#departmentStatsBody');
+            tbody.empty();
+
+            departmentStats.forEach(dept => {
+                const row = `
+                    <tr>
+                        <td class="fw-bold">${dept.department}</td>
+                        <td>${dept.totalClaims}</td>
+                        <td>${dept.approvedClaims}</td>
+                        <td class="text-success">${formatCurrency(dept.totalAmount)}</td>
+                        <td>
+                            <div class="progress" style="height: 8px;">
+                                <div class="progress-bar bg-success" style="width: ${dept.approvalRate}%"></div>
+                            </div>
+                            <small class="text-muted">${dept.approvalRate.toFixed(1)}%</small>
+                        </td>
+                    </tr>
+                `;
+                tbody.append(row);
+            });
+        }
+
+        function updateLecturerTable(lecturerStats) {
+            const tbody = $('#lecturerStatsBody');
+            tbody.empty();
+
+            lecturerStats.forEach(lecturer => {
+                const badgeClass = lecturer.approvalRate >= 80 ? 'success' :
+                                 lecturer.approvalRate >= 60 ? 'warning' : 'danger';
+                const row = `
+                    <tr>
+                        <td class="fw-bold">${lecturer.lecturerName}</td>
+                        <td>${lecturer.department}</td>
+                        <td>${lecturer.totalClaims}</td>
+                        <td class="text-success">${formatCurrency(lecturer.totalAmount)}</td>
+                        <td>
+                            <span class="badge bg-${badgeClass}">
+                                ${lecturer.approvalRate.toFixed(1)}%
+                            </span>
+                        </td>
+                    </tr>
+                `;
+                tbody.append(row);
+            });
+        }
+
+        function updateMonthlyTable(monthlyBreakdown) {
+            const tbody = $('#monthlyStatsBody');
+            tbody.empty();
+
+            monthlyBreakdown.forEach((month, index) => {
+                const badgeClass = month.approvalRate >= 80 ? 'success' :
+                                 month.approvalRate >= 60 ? 'warning' : 'danger';
+
+                let trendBadge = '<span class="badge bg-secondary">Baseline</span>';
+                if (index > 0) {
+                    const prevMonth = monthlyBreakdown[index - 1];
+                    const trend = month.amount - prevMonth.amount;
+                    if (trend > 0) {
+                        trendBadge = `<span class="badge bg-success trend-up"><i class="fas fa-arrow-up me-1"></i>${formatCurrency(trend)}</span>`;
+                    } else if (trend < 0) {
+                        trendBadge = `<span class="badge bg-danger trend-down"><i class="fas fa-arrow-down me-1"></i>${formatCurrency(Math.abs(trend))}</span>`;
+                    } else {
+                        trendBadge = '<span class="badge bg-secondary">No Change</span>';
+                    }
+                }
+
+                const row = `
+                    <tr>
+                        <td class="fw-bold">${month.month}</td>
+                        <td>${month.submitted}</td>
+                        <td><span class="badge bg-success">${month.approved}</span></td>
+                        <td class="text-success fw-bold">${formatCurrency(month.amount)}</td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="progress flex-grow-1 me-2" style="height: 6px;">
+                                    <div class="progress-bar bg-${badgeClass}" style="width: ${month.approvalRate}%"></div>
+                                </div>
+                                <small>${month.approvalRate.toFixed(1)}%</small>
+                            </div>
+                        </td>
+                        <td>${trendBadge}</td>
+                    </tr>
+                `;
+                tbody.append(row);
+            });
+        }
+
+        function updateCharts(data) {
+            // Update status chart
+            const underReview = data.totalClaims - data.approvedClaims - data.pendingClaims - data.rejectedClaims;
+            statusChart.data.datasets[0].data = [data.approvedClaims, data.pendingClaims, data.rejectedClaims, underReview];
+            statusChart.update();
+
+            // Update trend chart
+            trendChart.data.labels = data.monthlyBreakdown.map(m => m.month);
+            trendChart.data.datasets[0].data = data.monthlyBreakdown.map(m => m.submitted);
+            trendChart.data.datasets[1].data = data.monthlyBreakdown.map(m => m.approved);
+            trendChart.update();
+        }
+
+         function loadRealTimeStats() {
+            // Updated URL to avoid ambiguity
+            $.get('@Url.Action("GetRealTimeStats", "Manager")', function(response) {
+                if (response.success) {
+                    const stats = response.data;
+                    $('#claimsToday').text(stats.claimsToday);
+                    $('#approvedToday').text(stats.approvedToday);
+                    $('#pendingApproval').text(stats.pendingApproval);
+                    $('#amountToday').text(formatCurrency(stats.totalAmountToday));
+                }
+            }).fail(function() {
+                console.log('Failed to load real-time stats');
+            });
+        }
+
+        // Utility functions
+        function formatDate(date) {
+            return date.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+        }
+
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD'
+            }).format(amount);
+        }
+
+        function showNotification(message, type = 'success') {
+            const alertClass = type === 'success' ? 'alert-success' :
+                             type === 'warning' ? 'alert-warning' : 'alert-danger';
+            const icon = type === 'success' ? 'fa-check-circle' :
+                        type === 'warning' ? 'fa-exclamation-triangle' : 'fa-exclamation-circle';
+
+            const notification = $(`
+                <div class="alert ${alertClass} alert-dismissible fade show mt-3" role="alert">
+                    <i class="fas ${icon} me-2"></i>${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `);
+
+            $('main').prepend(notification);
+
+            setTimeout(() => {
+                notification.alert('close');
+            }, 5000);
+        }
     </script>
+
+    <style>
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .manager-card {
+            transition: all 0.3s ease;
+        }
+
+            .manager-card:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            }
+
+        .quick-range.active {
+            background-color: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+
+        .trend-up, .trend-down {
+            animation: pulse 2s infinite;
+        }
+
+        @@keyframes pulse {
+            0% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.05);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        .progress {
+            background-color: #e9ecef;
+        }
+
+        .table-hover tbody tr:hover {
+            background-color: rgba(0, 123, 255, 0.05);
+        }
+    </style>
 }

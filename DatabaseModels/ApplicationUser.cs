@@ -92,7 +92,10 @@ namespace ContractMonthlyClaimSystem.Models
         [DataType(DataType.Date)]
         public DateTime SubmissionDate { get; set; }
 
-        [StringLength(500)]
+        [DataType(DataType.Date)]
+        public DateTime? ApprovalDate{ get; set; }
+
+            [StringLength(500)]
         public string? AdditionalNotes { get; set; }
 
         // Payment tracking

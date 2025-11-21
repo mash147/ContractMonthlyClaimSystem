@@ -285,11 +285,170 @@
 </div>
 
 @section Scripts {
+   
     <script>
-        // Initialize any dashboard charts or analytics
         $(document).ready(function() {
             console.log('Manager dashboard loaded');
-            // Additional dashboard functionality can be added here
+            
+            // Auto-refresh dashboard data every 30 seconds
+            function refreshDashboardData() {
+                $.ajax({
+                    url: '@Url.Action("GetDashboardData", "Manager")',
+                    type: 'GET',
+                    success: function(response) {
+                        if (response.success) {
+                            updateDashboardStats(response.data);
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.log('Error refreshing dashboard:', error);
+                    }
+                });
+            }
+
+            function updateDashboardStats(data) {
+                // Update the pending approval count
+                const pendingCount = data.PendingApprovalCount || 0;
+                $('.badge.bg-warning:contains("Claims Awaiting")').text(pendingCount + ' Claims Awaiting Final Approval');
+                $('.card.border-warning .h5').text(pendingCount);
+                
+                // Update total amount
+                const totalAmount = data.TotalAmountThisMonth || 0;
+                $('.badge.bg-success:contains("This Month")').text('$' + totalAmount.toLocaleString() + ' This Month');
+                $('.card.border-success .h5').text('$' + totalAmount.toLocaleString());
+                
+                console.log('Dashboard stats updated');
+            }
+
+            // Initialize dashboard
+            refreshDashboardData();
+            
+            // Set up auto-refresh every 30 seconds
+            setInterval(refreshDashboardData, 30000);
+
+            // Add hover effects and animations
+            $('.manager-card').hover(
+                function() {
+                    $(this).addClass('shadow-lg');
+                },
+                function() {
+                    $(this).removeClass('shadow-lg');
+                }
+            );
+
+            // Add click animations for action buttons
+            $('.btn-group .btn').click(function() {
+                $(this).addClass('active');
+                setTimeout(() => {
+                    $(this).removeClass('active');
+                }, 150);
+            });
+
+            // Initialize tooltips
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
         });
+
+        // Function to show notification
+        function showNotification(message, type) {
+            const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+            const icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
+
+            const notification = $(`
+                <div class="alert ${alertClass} alert-dismissible fade show mt-3" role="alert">
+                    <i class="fas ${icon} me-2"></i>${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `);
+
+            $('main').prepend(notification);
+
+            setTimeout(function() {
+                notification.alert('close');
+            }, 5000);
+        }
     </script>
+
+    <style>
+        .manager-card {
+            transition: all 0.3s ease;
+            border-left: 4px solid #e67e22;
+        }
+
+            .manager-card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            }
+
+        .border-warning {
+            border-left-color: #f39c12 !important;
+        }
+
+        .border-success {
+            border-left-color: #27ae60 !important;
+        }
+
+        .border-info {
+            border-left-color: #3498db !important;
+        }
+
+        .border-primary {
+            border-left-color: #9b59b6 !important;
+        }
+
+        .btn-action {
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+            .btn-action:hover {
+                transform: scale(1.05);
+            }
+
+            .btn-action:active {
+                transform: scale(0.95);
+            }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @@keyframes pulse {
+            0% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.05);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        .stat-number {
+            font-weight: 700;
+            background: linear-gradient(45deg, #e67e22, #d35400);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Loading animation for dashboard */
+        .loading {
+            opacity: 0.7;
+            pointer-events: none;
+        }
+
+        .refresh-spinner {
+            display: none;
+        }
+
+        .refreshing .refresh-spinner {
+            display: inline-block;
+        }
+    </style>
 }
